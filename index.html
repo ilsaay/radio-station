@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#0f0f0f">
-<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta name="referrer" content="no-referrer">
 <title>在线广播</title>
 <style>
 :root{--bg:#0f0f0f;--panel:#181818;--panel2:#232323;--line:#2b2b2b;--text:#fff;--muted:#aaa;--soft:#707070;--red:#ff0033;--bar:90px}
@@ -43,9 +43,11 @@ function ximalayaURL(url){
     return u.toString();
   }catch{return url}
 }
+// 不做任何代理，直接返回原始地址候选
 function urlCandidates(url){
   const out=[]; const add=u=>{if(u&&!out.includes(u))out.push(u)};
-  const normalized=ximalayaURL(url); add(normalized); add(url); return out;
+  add(ximalayaURL(url)); add(url);
+  return out;
 }
 async function loadConfig(){
   setStatus('加载配置…');
@@ -86,11 +88,11 @@ function clearRetry(){if(state.hlsRetryTimer){clearTimeout(state.hlsRetryTimer);
 function nudgeLive(){try{if(audio.buffered.length){const end=audio.buffered.end(audio.buffered.length-1);if(isFinite(end)&&isFinite(audio.currentTime)&&end-audio.currentTime>.8)audio.currentTime=Math.max(0,end-.25)}}catch{}}
 async function startAudio(){try{await audio.play();setStatus('LIVE');updateIcon()}catch{setStatus('点击播放按钮开始');updateIcon()}}
 async function loadHlsWithCandidates(candidates,index=0){
-  if(index>=candidates.length){setStatus('M3U8 无法播放');return}
+  if(index>=candidates.length){setStatus('M3U8 无法播放（可能被 CORS 拦截）');return}
   const url=candidates[index]; destroyHls(); clearRetry(); state.hlsUrl=url;
   setStatus(index?'切换兼容地址…':'连接 M3U8…');
   if(window.Hls&&Hls.isSupported()){
-    const h=new Hls({enableWorker:true,lowLatencyMode:false,backBufferLength:0,maxBufferLength:30,liveSyncDurationCount:3,manifestLoadingMaxRetry:2,manifestLoadingRetryDelay:800,levelLoadingMaxRetry:3,levelLoadingRetryDelay:1000,fragLoadingMaxRetry:4,fragLoadingRetryDelay:1000});
+    const h=new Hls({enableWorker:true,lowLatencyMode:false,backBufferLength:0,maxBufferLength:30,liveSyncDurationCount:3,manifestLoadingMaxRetry:1,manifestLoadingRetryDelay:800,levelLoadingMaxRetry:2,levelLoadingRetryDelay:1000,fragLoadingMaxRetry:2,fragLoadingRetryDelay:1000});
     state.hls=h;
     let gotManifest=false;
     h.on(Hls.Events.MANIFEST_PARSED,()=>{gotManifest=true;setStatus('已找到直播流，启动播放…');startAudio()});
@@ -99,12 +101,12 @@ async function loadHlsWithCandidates(candidates,index=0){
       console.warn('HLS error',d);
       if(!d.fatal){if(d.details==='bufferStalledError'){nudgeLive();}return}
       if(d.type===Hls.ErrorTypes.NETWORK_ERROR){
-        setStatus('网络异常，自动重连…');clearRetry();state.hlsRetryTimer=setTimeout(()=>h.startLoad(-1),1200);return;
+        setStatus('网络异常（可能 CORS），尝试下一个地址…');setTimeout(()=>loadHlsWithCandidates(candidates,index+1),400);return;
       }
       if(d.type===Hls.ErrorTypes.MEDIA_ERROR){
         setStatus('恢复媒体…');try{h.recoverMediaError()}catch{setTimeout(()=>loadHlsWithCandidates(candidates,index+1),500)}return;
       }
-      if(!gotManifest||index+1<candidates.length){setStatus('当前 M3U8 方式失败，尝试兼容地址…');setTimeout(()=>loadHlsWithCandidates(candidates,index+1),400)}else setStatus('无法播放：请检查电台源 CORS 或直播状态');
+      if(index+1<candidates.length){setStatus('当前地址失败，尝试兼容地址…');setTimeout(()=>loadHlsWithCandidates(candidates,index+1),400)}else setStatus('无法播放：源站可能不允许跨域，请改用支持 CORS 的电台地址');
     });
     h.loadSource(url);h.attachMedia(audio);return;
   }
