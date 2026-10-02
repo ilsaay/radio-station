@@ -6,30 +6,148 @@
 <meta name="theme-color" content="#0f0f0f">
 <title>在线广播</title>
 <style>
-:root{--bg:#0f0f0f;--card:#191919;--line:#2a2a2a;--text:#fff;--muted:#888;--red:#ff0033}
+:root{
+  --bg:#0b0b0d;
+  --card:#161619;
+  --card-hover:#1e1e22;
+  --line:#2a2a30;
+  --text:#fff;
+  --muted:#8a8a92;
+  --red:#ff2a52;
+  --shadow:0 12px 30px rgba(0,0,0,.45);
+}
 *{box-sizing:border-box}
-html,body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,"Segoe UI",Arial,sans-serif}
-body{padding:0 0 96px}
-header{padding:28px 24px 12px;max-width:1100px;margin:0 auto}
-header h1{margin:0;font-size:24px;letter-spacing:-.02em}
-header p{margin:8px 0 0;color:var(--muted);font-size:13px}
-main{max-width:1100px;margin:0 auto;padding:12px 24px}
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:18px}
-.card{cursor:pointer;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;transition:.15s}
-.card:hover{border-color:#3a3a3a}
+html,body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,"Segoe UI",Arial,sans-serif;-webkit-font-smoothing:antialiased}
+body{padding:0 0 110px}
+
+/* 顶栏 */
+header{
+  position:sticky;top:0;z-index:20;
+  padding:22px 28px 16px;
+  background:linear-gradient(to bottom,rgba(11,11,13,.96),rgba(11,11,13,.75) 70%,transparent);
+  backdrop-filter:blur(14px);
+}
+header h1{margin:0;font-size:22px;letter-spacing:-.02em;font-weight:800}
+header p{margin:6px 0 0;color:var(--muted);font-size:13px}
+
+/* 网格 */
+main{max-width:1180px;margin:0 auto;padding:8px 28px 20px}
+.grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(168px,1fr));
+  gap:20px;
+}
+
+/* 方块卡片 */
+.card{
+  position:relative;
+  aspect-ratio:1/1;
+  border-radius:18px;
+  background:linear-gradient(160deg,#1b1b20,#121215);
+  border:1px solid var(--line);
+  cursor:pointer;
+  overflow:hidden;
+  display:flex;
+  flex-direction:column;
+  justify-content:flex-end;
+  padding:16px;
+  transition:transform .18s ease, border-color .18s ease, background .18s ease;
+}
+.card:hover{transform:translateY(-3px);border-color:#3a3a44;background:linear-gradient(160deg,#202027,#141418)}
 .card.playing{border-color:var(--red)}
-.card .name{font-size:14px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.card .sub{font-size:12px;color:var(--muted);margin-top:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-height:16px}
-.status-bar{max-width:1100px;margin:16px auto 0;padding:0 24px;color:var(--muted);font-size:12px}
-.empty{padding:60px 20px;text-align:center;color:#666;border:1px dashed #333;border-radius:14px}
-.bar{position:fixed;left:0;right:0;bottom:0;height:80px;background:rgba(18,18,18,.98);border-top:1px solid var(--line);backdrop-filter:blur(16px);display:flex;align-items:center;padding:0 22px;gap:16px}
+.card.playing::after{
+  content:"";position:absolute;inset:0;pointer-events:none;
+  box-shadow:inset 0 0 0 1px rgba(255,42,82,.35);
+}
+
+/* 卡片里的装饰音波 */
+.card .wave{
+  position:absolute;top:14px;right:14px;
+  display:flex;align-items:flex-end;gap:3px;height:18px;
+  opacity:.35;
+}
+.card .wave span{width:3px;background:var(--red);border-radius:2px;animation:wave 1.1s ease-in-out infinite}
+.card .wave span:nth-child(1){height:60%;animation-delay:0s}
+.card .wave span:nth-child(2){height:100%;animation-delay:.15s}
+.card .wave span:nth-child(3){height:45%;animation-delay:.3s}
+.card .wave span:nth-child(4){height:80%;animation-delay:.45s}
+.card.playing .wave{opacity:1}
+@keyframes wave{0%,100%{transform:scaleY(.55)}50%{transform:scaleY(1.15)}}
+
+/* 卡片文字 */
+.card .name{font-size:15px;font-weight:750;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;position:relative;z-index:2}
+.card .sub{margin-top:5px;font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;position:relative;z-index:2;min-height:15px}
+
+/* 播放中的小标记 */
+.card .live{
+  position:absolute;top:14px;left:14px;
+  font-size:10px;font-weight:900;letter-spacing:.1em;
+  color:#fff;background:var(--red);border-radius:5px;padding:3px 6px;
+  opacity:0;transition:opacity .18s;
+}
+.card.playing .live{opacity:1}
+
+/* 空状态 */
+.empty{padding:70px 20px;text-align:center;color:#666;border:1px dashed #333;border-radius:16px}
+
+/* 状态栏 */
+.status-bar{max-width:1180px;margin:6px auto 0;padding:0 28px;color:var(--muted);font-size:12px}
+
+/* 底部播放条 */
+.bar{
+  position:fixed;left:0;right:0;bottom:0;z-index:30;
+  height:88px;
+  background:rgba(16,16,19,.97);
+  border-top:1px solid var(--line);
+  backdrop-filter:blur(20px);
+  display:flex;align-items:center;gap:18px;
+  padding:0 26px;
+}
 .bar .info{flex:1;min-width:0}
-.bar .title{font-size:14px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bar .title{font-size:14px;font-weight:750;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .bar .sub{font-size:12px;color:var(--muted);margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.bar button{width:52px;height:52px;border-radius:50%;border:0;background:#fff;color:#111;display:grid;place-items:center;cursor:pointer;flex:0 0 auto}
-.bar button:disabled{opacity:.35;cursor:default}
-.bar button svg{width:22px;height:22px;fill:currentColor}
-@media(max-width:600px){header{padding:20px 16px 8px}main{padding:8px 16px}.status-bar{padding:0 16px}.grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}}
+
+/* 播放按钮 */
+.bar .play{
+  width:54px;height:54px;border-radius:50%;border:0;
+  background:#fff;color:#111;display:grid;place-items:center;
+  cursor:pointer;flex:0 0 auto;transition:transform .12s ease, opacity .15s;
+}
+.bar .play:active{transform:scale(.94)}
+.bar .play:disabled{opacity:.3;cursor:default}
+.bar .play svg{width:22px;height:22px;fill:currentColor}
+
+/* 音量 */
+.volume{display:flex;align-items:center;gap:10px;color:var(--muted);flex:0 0 auto}
+.volume svg{width:20px;height:20px;flex:0 0 auto}
+.volume input{
+  -webkit-appearance:none;appearance:none;
+  width:120px;height:4px;border-radius:2px;
+  background:linear-gradient(to right,#fff var(--v,80%),#333 var(--v,80%));
+  outline:none;cursor:pointer;
+}
+.volume input::-webkit-slider-thumb{
+  -webkit-appearance:none;appearance:none;
+  width:14px;height:14px;border-radius:50%;background:#fff;
+  border:0;box-shadow:0 0 0 1px rgba(0,0,0,.4);
+}
+.volume input::-moz-range-thumb{
+  width:14px;height:14px;border-radius:50%;background:#fff;border:0;
+}
+.volume .pct{font-size:11px;color:var(--muted);width:30px;text-align:right}
+
+@media(max-width:700px){
+  header{padding:18px 16px 12px}
+  main{padding:6px 16px 16px}
+  .status-bar{padding:0 16px}
+  .grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+  .card{border-radius:14px;padding:13px}
+  .card .name{font-size:13.5px}
+  .bar{height:82px;padding:0 14px;gap:12px}
+  .bar .play{width:48px;height:48px}
+  .volume input{width:80px}
+  .volume .pct{display:none}
+}
 </style>
 </head>
 <body>
@@ -37,19 +155,33 @@ main{max-width:1100px;margin:0 auto;padding:12px 24px}
   <h1 id="siteName">在线广播</h1>
   <p id="siteDesc"></p>
 </header>
+
 <main>
   <div class="grid" id="grid"></div>
 </main>
+
 <div class="status-bar" id="status">加载中…</div>
+
 <div class="bar">
   <div class="info">
     <div class="title" id="nowName">未选择电台</div>
-    <div class="sub" id="nowSub">点击上方卡片开始播放</div>
+    <div class="sub" id="nowSub">点击上方方块开始播放</div>
   </div>
-  <button id="playBtn" disabled>
+
+  <button class="play" id="playBtn" disabled aria-label="播放/暂停">
     <svg id="playIcon" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
   </button>
+
+  <div class="volume">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M4 10v4h4l5 4V6l-5 4H4Z"/>
+      <path d="M17 9a4 4 0 0 1 0 6"/>
+    </svg>
+    <input id="volume" type="range" min="0" max="1" step="0.01" value="0.8" aria-label="音量">
+    <span class="pct" id="volPct">80%</span>
+  </div>
 </div>
+
 <audio id="audio" preload="none"></audio>
 <script src="https://cdn.jsdelivr.net/npm/hls.js@1.7.3/dist/hls.min.js"></script>
 <script>
@@ -67,6 +199,10 @@ function playIcon(playing) {
   $('playIcon').innerHTML = playing
     ? '<path d="M7 5h3v14H7zm7 0h3v14h-3z"/>'
     : '<path d="M8 5v14l11-7z"/>';
+}
+
+function esc(v) {
+  return String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
 
 async function loadConfig() {
@@ -96,6 +232,8 @@ function render() {
   $('grid').innerHTML = state.stations.map((s, i) => {
     const playing = state.current === s && !audio.paused;
     return `<div class="card ${playing ? 'playing' : ''}" data-i="${i}">
+      <span class="live">LIVE</span>
+      <div class="wave"><span></span><span></span><span></span><span></span></div>
       <div class="name">${esc(s.name)}</div>
       <div class="sub">${esc(s.category || s.description || '')}</div>
     </div>`;
@@ -105,17 +243,13 @@ function render() {
   }
 }
 
-function esc(v) {
-  return String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-}
-
 function destroyHls() {
   if (state.hls) { try { state.hls.destroy(); } catch {} state.hls = null; }
 }
 
 function setNow(s) {
   $('nowName').textContent = s ? s.name : '未选择电台';
-  $('nowSub').textContent = s ? (s.description || s.category || 'LIVE') : '点击上方卡片开始播放';
+  $('nowSub').textContent = s ? (s.description || s.category || 'LIVE') : '点击上方方块开始播放';
   $('playBtn').disabled = !s;
 }
 
@@ -178,6 +312,19 @@ $('playBtn').onclick = () => {
   if (audio.paused) tryPlay(); else audio.pause();
 };
 
+/* 音量 */
+const vol = $('volume');
+const volPct = $('volPct');
+function syncVolume() {
+  const v = parseFloat(vol.value);
+  audio.volume = v;
+  vol.style.setProperty('--v', (v * 100) + '%');
+  volPct.textContent = Math.round(v * 100) + '%';
+}
+vol.addEventListener('input', syncVolume);
+syncVolume();
+
+/* 音频状态 */
 audio.addEventListener('playing', () => { setStatus('播放中'); playIcon(true); render(); });
 audio.addEventListener('pause', () => { playIcon(false); render(); });
 audio.addEventListener('waiting', () => setStatus('缓冲中…'));
