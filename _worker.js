@@ -1,5 +1,5 @@
 const GITHUB_RAW_URL =
-    "https://raw.githubusercontent.com/你的GitHub用户名/你的仓库/main/config.ini";
+    "https://github.com/ilsaay/radio-station/blob/main/config.ini";
 
 /*
  * ============================================================
