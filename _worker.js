@@ -1,412 +1,270 @@
-/*
- * ============================================================
- * Cloudflare Pages Radio Station Worker
- * ============================================================
- *
- * GitHub:
- * https://github.com/ilsaay/radio-station
- *
- * Files:
- *   index.html
- *   config.ini
- *   _worker.js
- *
- * No npm
- * No package.json
- * No third-party backend
- *
- * ============================================================
- */
-
 const GITHUB_CONFIG_URL =
     "https://raw.githubusercontent.com/ilsaay/radio-station/main/config.ini";
 
-const CONFIG_CACHE_TTL = 30 * 1000;
+const CACHE_TTL =
+    30 * 1000;
 
-const FETCH_TIMEOUT = 10000;
-
-
-/*
- * 最近一次正常配置
- */
-
-let memoryConfig = null;
-let memoryConfigTime = 0;
+let memoryCache = {
+    time: 0,
+    data: null
+};
 
 
-/*
- * ============================================================
- * CORS
- * ============================================================
- */
+/* =========================================================
+   INI PARSER
+========================================================= */
 
-function corsHeaders() {
+function parseINI(text){
 
-    return {
-        "Access-Control-Allow-Origin": "*",
+    const result = {};
 
-        "Access-Control-Allow-Methods":
-            "GET, HEAD, OPTIONS",
-
-        "Access-Control-Allow-Headers":
-            "*",
-
-        "Access-Control-Expose-Headers":
-            "Content-Length, Content-Range, Accept-Ranges, Content-Type"
-    };
-}
+    let section = null;
 
 
-/*
- * ============================================================
- * JSON
- * ============================================================
- */
-
-function json(data, status = 200) {
-
-    const headers = {
-
-        "Content-Type":
-            "application/json; charset=utf-8",
-
-        "Cache-Control":
-            "public, max-age=30, s-maxage=30",
-
-        ...corsHeaders()
-    };
-
-    return new Response(
-        JSON.stringify(data, null, 2),
-        {
-            status,
-            headers
-        }
-    );
-}
-
-
-/*
- * ============================================================
- * INI Parser
- * ============================================================
- */
-
-function parseINI(text) {
-
-    const sections = [];
-
-    let current = null;
-
-    text = String(text || "")
-        .replace(/^\uFEFF/, "");
-
-    for (
-        const originalLine
-        of text.split(/\r?\n/)
-    ) {
+    for(
+        const rawLine of text.split(/\r?\n/)
+    ){
 
         const line =
-            originalLine.trim();
+            rawLine.trim();
 
-        if (!line) {
+
+        if(!line){
+
             continue;
+
         }
 
-        if (
-            line.startsWith(";") ||
-            line.startsWith("#")
-        ) {
+
+        if(
+            line.startsWith("#") ||
+            line.startsWith(";")
+        ){
+
             continue;
+
         }
+
 
         const sectionMatch =
             line.match(
                 /^\[([^\]]+)\]$/
             );
 
-        if (sectionMatch) {
 
-            current = {
+        if(sectionMatch){
 
-                section:
-                    sectionMatch[1].trim()
-            };
+            section =
+                sectionMatch[1].trim();
 
-            sections.push(current);
+
+            if(!result[section]){
+
+                result[section] = {};
+
+            }
+
 
             continue;
+
         }
 
-        if (!current) {
-            continue;
-        }
 
-        const equals =
+        const equal =
             line.indexOf("=");
 
-        if (equals < 1) {
+
+        if(
+            equal === -1 ||
+            !section
+        ){
+
             continue;
+
         }
+
 
         const key =
             line
-                .slice(0, equals)
+                .slice(0,equal)
                 .trim();
 
-        let value =
+
+        const value =
             line
-                .slice(equals + 1)
+                .slice(equal + 1)
                 .trim();
 
-        if (
-            value.length >= 2 &&
-            (
-                (
-                    value[0] === '"' &&
-                    value[value.length - 1] === '"'
-                ) ||
-                (
-                    value[0] === "'" &&
-                    value[value.length - 1] === "'"
-                )
-            )
-        ) {
 
-            value =
-                value.slice(
-                    1,
-                    -1
-                );
+        if(key){
+
+            result[section][key] =
+                value;
+
         }
 
-        current[key] = value;
     }
 
-    return sections;
+
+    return result;
+
 }
 
 
-/*
- * ============================================================
- * Build radio configuration
- * ============================================================
- */
+/* =========================================================
+   BUILD JSON
+========================================================= */
 
-function buildConfig(text) {
+function buildData(text){
 
-    const sections =
+    const ini =
         parseINI(text);
 
 
-    let siteSection = null;
-
-    for (const section of sections) {
-
-        if (
-            String(section.section)
-                .toLowerCase() === "site"
-        ) {
-
-            siteSection = section;
-
-            break;
-        }
-    }
-
-
-    const site = {
-
-        name:
-            siteSection?.name ||
-            "广播电台",
-
-        title:
-            siteSection?.title ||
-            "在线广播",
-
-        description:
-            siteSection?.description ||
-            "收听你喜欢的网络电台"
-    };
+    const site =
+        ini.site || {};
 
 
     const stations = [];
 
 
-    for (const section of sections) {
+    /*
+     * 不要求 radio1/radio2/radio3
+     *
+     * 任何 section 只要存在 url
+     * 都自动成为一个电台。
+     */
 
-        if (!section.url) {
+    for(
+        const [section, values]
+        of Object.entries(ini)
+    ){
+
+        if(
+            section === "site" ||
+            !values.url
+        ){
+
             continue;
-        }
 
-
-        const url =
-            String(section.url)
-                .trim();
-
-
-        if (
-            !/^https?:\/\//i.test(url)
-        ) {
-            continue;
-        }
-
-
-        let type =
-            String(
-                section.type ||
-                ""
-            ).toLowerCase();
-
-
-        if (!type) {
-
-            if (
-                /\.m3u8(?:\?|$)/i.test(url)
-            ) {
-
-                type = "m3u8";
-
-            } else {
-
-                type = "mp3";
-            }
         }
 
 
         stations.push({
 
             id:
-                section.id ||
-                section.section,
+                section,
 
             name:
-                section.name ||
-                "未命名电台",
+                values.name ||
+                section,
 
-            url,
+            url:
+                values.url,
 
-            type,
+            type:
+                (
+                    values.type ||
+                    "mp3"
+                ).toLowerCase(),
 
             category:
-                section.category ||
-                "网络电台",
+                values.category ||
+                "网络广播",
 
             description:
-                section.description ||
+                values.description ||
+                "",
+
+            cover:
+                values.cover ||
                 ""
+
         });
+
     }
 
 
     return {
 
-        site,
+        site: {
 
-        stations,
+            name:
+                site.name ||
+                "在线广播",
 
-        generatedAt:
-            Date.now()
+            title:
+                site.title ||
+                "随时随地，开始收听。",
+
+            description:
+                site.description ||
+                "从音乐、新闻到网络广播，把你喜欢的声音集中到一个简单的播放器里。"
+
+        },
+
+        stations
+
     };
+
 }
 
 
-/*
- * ============================================================
- * Fetch with timeout
- * ============================================================
- */
+/* =========================================================
+   GET CONFIG
+========================================================= */
 
-async function fetchWithTimeout(
-    url,
-    options = {},
-    timeout = FETCH_TIMEOUT
-) {
-
-    const controller =
-        new AbortController();
-
-
-    const timer =
-        setTimeout(
-            () => controller.abort(),
-            timeout
-        );
-
-
-    try {
-
-        return await fetch(
-            url,
-            {
-                ...options,
-                signal:
-                    controller.signal
-            }
-        );
-
-    } finally {
-
-        clearTimeout(timer);
-    }
-}
-
-
-/*
- * ============================================================
- * GitHub Config
- * ============================================================
- */
-
-async function getConfig() {
+async function getConfig(){
 
     const now =
         Date.now();
 
 
     /*
-     * 内存缓存
+     * Worker 内存缓存
      */
 
-    if (
-        memoryConfig &&
-        now - memoryConfigTime <
-            CONFIG_CACHE_TTL
-    ) {
+    if(
+        memoryCache.data &&
+        now - memoryCache.time <
+        CACHE_TTL
+    ){
 
-        return memoryConfig;
+        return memoryCache.data;
+
     }
 
 
-    try {
+    try{
 
         const response =
-            await fetchWithTimeout(
+            await fetch(
                 GITHUB_CONFIG_URL,
                 {
-                    headers: {
-                        "Accept":
-                            "text/plain",
-
+                    headers:{
                         "User-Agent":
-                            "radio-station-cloudflare-worker"
+                            "radio-station-worker",
+
+                        "Cache-Control":
+                            "no-cache"
                     },
 
-                    cf: {
-                        cacheTtl: 30,
-                        cacheEverything: true
+                    cf:{
+                        cacheTtl:30,
+
+                        cacheEverything:true
                     }
                 }
             );
 
 
-        if (!response.ok) {
+        if(!response.ok){
 
             throw new Error(
                 "GitHub HTTP " +
                 response.status
             );
+
         }
 
 
@@ -414,694 +272,54 @@ async function getConfig() {
             await response.text();
 
 
-        if (!text.trim()) {
-
-            throw new Error(
-                "config.ini 为空"
-            );
-        }
+        const data =
+            buildData(text);
 
 
-        const config =
-            buildConfig(text);
+        memoryCache = {
+
+            time:now,
+
+            data
+
+        };
 
 
-        /*
-         * 防止错误配置覆盖正常配置
-         */
+        return data;
 
-        if (
-            config.stations.length === 0 &&
-            memoryConfig &&
-            memoryConfig.stations.length > 0
-        ) {
-
-            memoryConfigTime = now;
-
-            return memoryConfig;
-        }
-
-
-        memoryConfig =
-            config;
-
-        memoryConfigTime =
-            now;
-
-
-        return config;
-
-    } catch (error) {
+    }
+    catch(error){
 
         /*
-         * GitHub 暂时不可用时，
-         * 使用最近一次正常配置。
+         * GitHub 临时不可用时，
+         * 如果 Worker 已经有旧配置，
+         * 继续使用旧配置。
          */
 
-        if (memoryConfig) {
+        if(memoryCache.data){
 
-            return memoryConfig;
+            return memoryCache.data;
+
         }
+
 
         throw error;
+
     }
+
 }
 
 
-/*
- * ============================================================
- * API /api/stations
- * ============================================================
- */
-
-async function stationsAPI() {
-
-    try {
-
-        const config =
-            await getConfig();
-
-
-        return json({
-
-            ok: true,
-
-            site:
-                config.site,
-
-            stations:
-                config.stations,
-
-            count:
-                config.stations.length,
-
-            generatedAt:
-                config.generatedAt
-
-        });
-
-    } catch (error) {
-
-        return json(
-            {
-                ok: false,
-
-                error:
-                    "无法读取电台配置",
-
-                detail:
-                    error?.message ||
-                    String(error)
-            },
-
-            503
-        );
-    }
-}
-
-
-/*
- * ============================================================
- * Allowed source URL
- *
- * 只允许来自 config.ini 的地址。
- * 防止 /api/hls 被当成开放代理滥用。
- * ============================================================
- */
-
-async function isAllowedSource(
-    source
-) {
-
-    try {
-
-        const config =
-            await getConfig();
-
-
-        for (
-            const station
-            of config.stations
-        ) {
-
-            if (
-                station.url === source
-            ) {
-
-                return true;
-            }
-        }
-
-
-        return false;
-
-    } catch {
-
-        return false;
-    }
-}
-
-
-/*
- * ============================================================
- * Resolve URL
- * ============================================================
- */
-
-function resolveURL(
-    base,
-    target
-) {
-
-    try {
-
-        return new URL(
-            target,
-            base
-        ).toString();
-
-    } catch {
-
-        return null;
-    }
-}
-
-
-/*
- * ============================================================
- * Rewrite M3U8
- *
- * 把：
- *
- *   segment.ts
- *
- * 变成：
- *
- *   /api/hls-segment?url=...
- *
- * ============================================================
- */
-
-function rewriteM3U8(
-    text,
-    playlistURL
-) {
-
-    const lines =
-        text.split(/\r?\n/);
-
-
-    const output = [];
-
-
-    for (let i = 0; i < lines.length; i++) {
-
-        const line =
-            lines[i];
-
-
-        const trimmed =
-            line.trim();
-
-
-        /*
-         * 空行
-         */
-
-        if (!trimmed) {
-
-            output.push("");
-
-            continue;
-        }
-
-
-        /*
-         * M3U8 注释
-         */
-
-        if (
-            trimmed.startsWith("#")
-        ) {
-
-            /*
-             * EXT-X-KEY
-             *
-             * 如果 KEY 使用 URI，
-             * 也需要代理。
-             */
-
-            if (
-                /^#EXT-X-KEY:/i.test(trimmed)
-            ) {
-
-                const rewritten =
-                    rewriteURIAttribute(
-                        line,
-                        playlistURL
-                    );
-
-                output.push(
-                    rewritten
-                );
-
-            } else {
-
-                output.push(line);
-            }
-
-            continue;
-        }
-
-
-        /*
-         * 普通 URI
-         *
-         * 可能是：
-         *
-         * .ts
-         * .aac
-         * .m4s
-         * 子 M3U8
-         */
-
-        const absolute =
-            resolveURL(
-                playlistURL,
-                trimmed
-            );
-
-
-        if (!absolute) {
-
-            output.push(line);
-
-            continue;
-        }
-
-
-        const proxyURL =
-            "/api/hls-segment?url=" +
-            encodeURIComponent(
-                absolute
-            );
-
-
-        output.push(
-            proxyURL
-        );
-    }
-
-
-    return output.join("\n");
-}
-
-
-/*
- * ============================================================
- * Rewrite URI="..."
- * ============================================================
- */
-
-function rewriteURIAttribute(
-    line,
-    playlistURL
-) {
-
-    return line.replace(
-        /URI="([^"]+)"/gi,
-        (full, uri) => {
-
-            const absolute =
-                resolveURL(
-                    playlistURL,
-                    uri
-                );
-
-
-            if (!absolute) {
-                return full;
-            }
-
-
-            return (
-                'URI="/api/hls-segment?url=' +
-                encodeURIComponent(
-                    absolute
-                ) +
-                '"'
-            );
-        }
-    );
-}
-
-
-/*
- * ============================================================
- * HLS playlist
- * ============================================================
- */
-
-async function hlsPlaylist(
-    request,
-    source
-) {
-
-    const allowed =
-        await isAllowedSource(
-            source
-        );
-
-
-    if (!allowed) {
-
-        return json(
-            {
-                ok: false,
-                error:
-                    "该电台地址没有在 config.ini 中登记"
-            },
-            403
-        );
-    }
-
-
-    const response =
-        await fetchWithTimeout(
-            source,
-            {
-                headers: {
-
-                    "User-Agent":
-                        "Mozilla/5.0",
-
-                    "Accept":
-                        "*/*",
-
-                    "Referer":
-                        "https://www.ximalaya.com/"
-                }
-            }
-        );
-
-
-    if (!response.ok) {
-
-        return new Response(
-            "Upstream HTTP " +
-            response.status,
-            {
-                status: 502,
-
-                headers:
-                    corsHeaders()
-            }
-        );
-    }
-
-
-    const text =
-        await response.text();
-
-
-    const rewritten =
-        rewriteM3U8(
-            text,
-            source
-        );
-
-
-    return new Response(
-        rewritten,
-        {
-            status: 200,
-
-            headers: {
-
-                ...corsHeaders(),
-
-                "Content-Type":
-                    "application/vnd.apple.mpegurl",
-
-                "Cache-Control":
-                    "no-cache, no-store, must-revalidate",
-
-                "Access-Control-Allow-Headers":
-                    "*"
-            }
-        }
-    );
-}
-
-
-/*
- * ============================================================
- * HLS segment / nested resource
- * ============================================================
- */
-
-async function hlsSegment(
-    request,
-    source
-) {
-
-    if (!source) {
-
-        return json(
-            {
-                ok: false,
-                error:
-                    "缺少 url"
-            },
-            400
-        );
-    }
-
-
-    /*
-     * 只允许 config.ini 中登记的源站，
-     * 或由已登记 M3U8 解析出来的同源资源。
-     *
-     * 这里先检查 hostname。
-     */
-
-    let target;
-
-    try {
-
-        target =
-            new URL(source);
-
-    } catch {
-
-        return json(
-            {
-                ok: false,
-                error:
-                    "URL 无效"
-            },
-            400
-        );
-    }
-
-
-    const config =
-        await getConfig();
-
-
-    let sourceAllowed = false;
-
-
-    for (
-        const station
-        of config.stations
-    ) {
-
-        try {
-
-            const stationURL =
-                new URL(station.url);
-
-
-            if (
-                stationURL.hostname ===
-                target.hostname
-            ) {
-
-                sourceAllowed = true;
-
-                break;
-            }
-
-        } catch {}
-    }
-
-
-    if (!sourceAllowed) {
-
-        return json(
-            {
-                ok: false,
-                error:
-                    "该媒体源不在允许范围内"
-            },
-            403
-        );
-    }
-
-
-    const headers =
-        new Headers();
-
-
-    headers.set(
-        "User-Agent",
-        "Mozilla/5.0"
-    );
-
-
-    headers.set(
-        "Accept",
-        "*/*"
-    );
-
-
-    /*
-     * 支持音频 Range
-     */
-
-    const range =
-        request.headers.get(
-            "Range"
-        );
-
-
-    if (range) {
-
-        headers.set(
-            "Range",
-            range
-        );
-    }
-
-
-    const referer =
-        request.headers.get(
-            "Referer"
-        );
-
-
-    if (referer) {
-
-        headers.set(
-            "Referer",
-            referer
-        );
-    }
-
-
-    const response =
-        await fetchWithTimeout(
-            target.toString(),
-            {
-                headers
-            }
-        );
-
-
-    if (
-        !response.ok &&
-        response.status !== 206
-    ) {
-
-        return new Response(
-            "Upstream HTTP " +
-            response.status,
-            {
-                status: 502,
-
-                headers:
-                    corsHeaders()
-            }
-        );
-    }
-
-
-    const responseHeaders =
-        new Headers(
-            response.headers
-        );
-
-
-    /*
-     * CORS
-     */
-
-    const cors =
-        corsHeaders();
-
-
-    for (
-        const [key, value]
-        of Object.entries(cors)
-    ) {
-
-        responseHeaders.set(
-            key,
-            value
-        );
-    }
-
-
-    /*
-     * 不让浏览器缓存直播分片太久
-     */
-
-    responseHeaders.set(
-        "Cache-Control",
-        "no-cache"
-    );
-
-
-    /*
-     * 允许浏览器 Range
-     */
-
-    responseHeaders.set(
-        "Accept-Ranges",
-        "bytes"
-    );
-
-
-    return new Response(
-        response.body,
-        {
-            status:
-                response.status,
-
-            statusText:
-                response.statusText,
-
-            headers:
-                responseHeaders
-        }
-    );
-}
-
-
-/*
- * ============================================================
- * Main
- * ============================================================
- */
+/* =========================================================
+   WORKER
+========================================================= */
 
 export default {
 
     async fetch(
         request,
-        env,
-        ctx
-    ) {
+        env
+    ){
 
         const url =
             new URL(
@@ -1110,205 +328,98 @@ export default {
 
 
         /*
-         * OPTIONS
+         * 唯一 API：
+         *
+         * /api/stations
          */
 
-        if (
-            request.method ===
-            "OPTIONS"
-        ) {
-
-            return new Response(
-                null,
-                {
-                    status: 204,
-
-                    headers:
-                        corsHeaders()
-                }
-            );
-        }
-
-
-        /*
-         * API
-         */
-
-        if (
+        if(
             url.pathname ===
             "/api/stations"
-        ) {
+        ){
 
-            if (
-                request.method !==
-                "GET"
-            ) {
+            try{
 
-                return json(
+                const data =
+                    await getConfig();
+
+
+                return new Response(
+
+                    JSON.stringify(
+                        data
+                    ),
+
                     {
-                        ok: false,
-                        error:
-                            "Method Not Allowed"
-                    },
-                    405
+                        status:200,
+
+                        headers:{
+
+                            "Content-Type":
+                                "application/json; charset=utf-8",
+
+                            "Cache-Control":
+                                "public, max-age=20, stale-while-revalidate=60",
+
+                            "Access-Control-Allow-Origin":
+                                "*"
+
+                        }
+
+                    }
+
                 );
+
+            }
+            catch(error){
+
+                return new Response(
+
+                    JSON.stringify({
+
+                        error:
+                            "CONFIG_ERROR",
+
+                        message:
+                            String(
+                                error.message ||
+                                error
+                            )
+
+                    }),
+
+                    {
+                        status:502,
+
+                        headers:{
+
+                            "Content-Type":
+                                "application/json; charset=utf-8",
+
+                            "Access-Control-Allow-Origin":
+                                "*"
+
+                        }
+
+                    }
+
+                );
+
             }
 
-
-            return stationsAPI();
         }
 
 
         /*
-         * M3U8
-         */
-
-        if (
-            url.pathname ===
-            "/api/hls"
-        ) {
-
-            if (
-                request.method !==
-                    "GET" &&
-                request.method !==
-                    "HEAD"
-            ) {
-
-                return json(
-                    {
-                        ok: false,
-                        error:
-                            "Method Not Allowed"
-                    },
-                    405
-                );
-            }
-
-
-            const source =
-                url.searchParams.get(
-                    "url"
-                );
-
-
-            if (!source) {
-
-                return json(
-                    {
-                        ok: false,
-                        error:
-                            "缺少 url"
-                    },
-                    400
-                );
-            }
-
-
-            try {
-
-                return await hlsPlaylist(
-                    request,
-                    source
-                );
-
-            } catch (error) {
-
-                return json(
-                    {
-                        ok: false,
-
-                        error:
-                            "HLS 获取失败",
-
-                        detail:
-                            error?.message ||
-                            String(error)
-                    },
-                    502
-                );
-            }
-        }
-
-
-        /*
-         * HLS 分片
-         */
-
-        if (
-            url.pathname ===
-            "/api/hls-segment"
-        ) {
-
-            if (
-                request.method !==
-                    "GET" &&
-                request.method !==
-                    "HEAD"
-            ) {
-
-                return json(
-                    {
-                        ok: false,
-                        error:
-                            "Method Not Allowed"
-                    },
-                    405
-                );
-            }
-
-
-            const source =
-                url.searchParams.get(
-                    "url"
-                );
-
-
-            if (!source) {
-
-                return json(
-                    {
-                        ok: false,
-                        error:
-                            "缺少 url"
-                    },
-                    400
-                );
-            }
-
-
-            try {
-
-                return await hlsSegment(
-                    request,
-                    source
-                );
-
-            } catch (error) {
-
-                return json(
-                    {
-                        ok: false,
-
-                        error:
-                            "媒体分片获取失败",
-
-                        detail:
-                            error?.message ||
-                            String(error)
-                    },
-                    502
-                );
-            }
-        }
-
-
-        /*
-         * Pages 静态文件
+         * 其他所有请求：
+         *
+         * 交给 Cloudflare Pages 静态资源。
          */
 
         return env.ASSETS.fetch(
             request
         );
+
     }
+
 };
