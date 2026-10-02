@@ -20,7 +20,6 @@
 html,body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,"Segoe UI",Arial,sans-serif;-webkit-font-smoothing:antialiased}
 body{padding:0 0 110px}
 
-/* 顶栏 */
 header{
   position:sticky;top:0;z-index:20;
   padding:22px 28px 16px;
@@ -30,7 +29,6 @@ header{
 header h1{margin:0;font-size:22px;letter-spacing:-.02em;font-weight:800}
 header p{margin:6px 0 0;color:var(--muted);font-size:13px}
 
-/* 网格 */
 main{max-width:1180px;margin:0 auto;padding:8px 28px 20px}
 .grid{
   display:grid;
@@ -52,17 +50,34 @@ main{max-width:1180px;margin:0 auto;padding:8px 28px 20px}
   justify-content:flex-end;
   padding:16px;
   transition:transform .18s ease, border-color .18s ease, background .18s ease;
+  isolation:isolate;
 }
 .card:hover{transform:translateY(-3px);border-color:#3a3a44;background:linear-gradient(160deg,#202027,#141418)}
 .card.playing{border-color:var(--red)}
 .card.playing::after{
-  content:"";position:absolute;inset:0;pointer-events:none;
+  content:"";position:absolute;inset:0;pointer-events:none;z-index:3;
   box-shadow:inset 0 0 0 1px rgba(255,42,82,.35);
+}
+
+/* 封面图（支持 webp/jpg/png/avif） */
+.card .cover{
+  position:absolute;inset:0;z-index:0;
+  width:100%;height:100%;
+  object-fit:cover;
+  opacity:.62;
+  transition:opacity .2s ease, transform .35s ease;
+  background:#121215;
+}
+.card:hover .cover{opacity:.78;transform:scale(1.04)}
+/* 封面遮罩，保证文字可读 */
+.card .shade{
+  position:absolute;inset:0;z-index:1;pointer-events:none;
+  background:linear-gradient(to top,rgba(0,0,0,.82) 8%,rgba(0,0,0,.35) 55%,rgba(0,0,0,.12));
 }
 
 /* 卡片里的装饰音波 */
 .card .wave{
-  position:absolute;top:14px;right:14px;
+  position:absolute;top:14px;right:14px;z-index:2;
   display:flex;align-items:flex-end;gap:3px;height:18px;
   opacity:.35;
 }
@@ -74,26 +89,20 @@ main{max-width:1180px;margin:0 auto;padding:8px 28px 20px}
 .card.playing .wave{opacity:1}
 @keyframes wave{0%,100%{transform:scaleY(.55)}50%{transform:scaleY(1.15)}}
 
-/* 卡片文字 */
 .card .name{font-size:15px;font-weight:750;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;position:relative;z-index:2}
-.card .sub{margin-top:5px;font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;position:relative;z-index:2;min-height:15px}
+.card .sub{margin-top:5px;font-size:12px;color:#c9c9d1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;position:relative;z-index:2;min-height:15px}
 
-/* 播放中的小标记 */
 .card .live{
-  position:absolute;top:14px;left:14px;
+  position:absolute;top:14px;left:14px;z-index:2;
   font-size:10px;font-weight:900;letter-spacing:.1em;
   color:#fff;background:var(--red);border-radius:5px;padding:3px 6px;
   opacity:0;transition:opacity .18s;
 }
 .card.playing .live{opacity:1}
 
-/* 空状态 */
 .empty{padding:70px 20px;text-align:center;color:#666;border:1px dashed #333;border-radius:16px}
-
-/* 状态栏 */
 .status-bar{max-width:1180px;margin:6px auto 0;padding:0 28px;color:var(--muted);font-size:12px}
 
-/* 底部播放条 */
 .bar{
   position:fixed;left:0;right:0;bottom:0;z-index:30;
   height:88px;
@@ -107,7 +116,6 @@ main{max-width:1180px;margin:0 auto;padding:8px 28px 20px}
 .bar .title{font-size:14px;font-weight:750;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .bar .sub{font-size:12px;color:var(--muted);margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
-/* 播放按钮 */
 .bar .play{
   width:54px;height:54px;border-radius:50%;border:0;
   background:#fff;color:#111;display:grid;place-items:center;
@@ -117,7 +125,6 @@ main{max-width:1180px;margin:0 auto;padding:8px 28px 20px}
 .bar .play:disabled{opacity:.3;cursor:default}
 .bar .play svg{width:22px;height:22px;fill:currentColor}
 
-/* 音量 */
 .volume{display:flex;align-items:center;gap:10px;color:var(--muted);flex:0 0 auto}
 .volume svg{width:20px;height:20px;flex:0 0 auto}
 .volume input{
@@ -224,6 +231,13 @@ async function loadConfig() {
   }
 }
 
+/* 封面图：支持 webp/jpg/png/avif，加载失败则移除，回退到纯色卡片 */
+function coverHtml(s) {
+  if (!s.cover) return '';
+  return `<img class="cover" src="${esc(s.cover)}" alt="" loading="lazy" decoding="async"
+    onerror="this.remove()">`;
+}
+
 function render() {
   if (!state.stations.length) {
     $('grid').innerHTML = '<div class="empty">没有电台</div>';
@@ -232,6 +246,8 @@ function render() {
   $('grid').innerHTML = state.stations.map((s, i) => {
     const playing = state.current === s && !audio.paused;
     return `<div class="card ${playing ? 'playing' : ''}" data-i="${i}">
+      ${coverHtml(s)}
+      <div class="shade"></div>
       <span class="live">LIVE</span>
       <div class="wave"><span></span><span></span><span></span><span></span></div>
       <div class="name">${esc(s.name)}</div>
@@ -324,7 +340,6 @@ function syncVolume() {
 vol.addEventListener('input', syncVolume);
 syncVolume();
 
-/* 音频状态 */
 audio.addEventListener('playing', () => { setStatus('播放中'); playIcon(true); render(); });
 audio.addEventListener('pause', () => { playIcon(false); render(); });
 audio.addEventListener('waiting', () => setStatus('缓冲中…'));
