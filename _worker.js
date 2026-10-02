@@ -1,9 +1,7 @@
 /*
  * ============================================================
- * Cloudflare Pages 广播站后端
+ * Cloudflare Pages 广播站 Worker
  * ============================================================
- *
- * 零第三方依赖。
  *
  * GitHub config.ini
  *       ↓
@@ -13,179 +11,81 @@
  *       ↓
  * index.html
  *
+ * 零第三方依赖
  * ============================================================
- */
-
-
-/*
- * ============================================================
- * ① 修改这里
- * ============================================================
- *
- * 例如：
- *
- * https://raw.githubusercontent.com/abc/radio-station/main/config.ini
- *
  */
 
 const GITHUB_CONFIG_URL =
-    "https://raw.githubusercontent.com/ilsaay/radio-station/blob/main/config.ini";
+    "https://raw.githubusercontent.com/ilsaay/radio-station/main/config.ini";
 
-
-/*
- * 配置缓存时间。
- *
- * 30 秒：
- *
- * 修改 GitHub config.ini 后，
- * 最多约 30 秒读取到新配置。
- */
-
-const CACHE_TTL =
-    30 * 1000;
-
-
-/*
- * GitHub 请求超时时间。
- */
-
-const FETCH_TIMEOUT =
-    8000;
-
-
-/*
- * Worker 内存中的最近成功配置。
- *
- * GitHub 暂时失败时，
- * 继续使用最近一次成功配置。
- */
+const CACHE_TTL = 30 * 1000;
+const FETCH_TIMEOUT = 8000;
 
 let memoryCache = null;
-
 let memoryCacheTime = 0;
 
 
 /*
  * ============================================================
- * INI 解析器
+ * INI 解析
  * ============================================================
  */
 
-function parseINI(text){
+function parseINI(text) {
 
     const sections = [];
 
     let current = null;
 
+    text = String(text || "")
+        .replace(/^\uFEFF/, "");
 
-    text =
-        text.replace(
-            /^\uFEFF/,
-            ""
-        );
+    const lines = text.split(/\r?\n/);
 
+    for (const rawLine of lines) {
 
-    const lines =
-        text.split(/\r?\n/);
+        let line = rawLine.trim();
 
+        if (!line) continue;
 
-    for(
-        let i = 0;
-        i < lines.length;
-        i++
-    ){
-
-        let line =
-            lines[i].trim();
-
-
-        /*
-         * 空行和注释。
-         */
-
-        if(
-            !line ||
+        if (
             line.startsWith(";") ||
             line.startsWith("#")
-        ){
-
+        ) {
             continue;
         }
-
-
-        /*
-         * [radio]
-         */
 
         const sectionMatch =
-            line.match(
-                /^\[([^\]]+)\]$/
-            );
+            line.match(/^\[([^\]]+)\]$/);
 
-
-        if(sectionMatch){
+        if (sectionMatch) {
 
             current = {
-                section:
-                    sectionMatch[1].trim()
+                section: sectionMatch[1].trim()
             };
 
-
-            sections.push(
-                current
-            );
-
+            sections.push(current);
 
             continue;
         }
 
-
-        /*
-         * 没有 section 时忽略。
-         */
-
-        if(!current){
-
+        if (!current) {
             continue;
         }
 
+        const position = line.indexOf("=");
 
-        /*
-         * key=value
-         */
-
-        const position =
-            line.indexOf("=");
-
-
-        if(position <= 0){
-
+        if (position <= 0) {
             continue;
         }
-
 
         const key =
-            line
-                .slice(
-                    0,
-                    position
-                )
-                .trim();
-
+            line.slice(0, position).trim();
 
         let value =
-            line
-                .slice(
-                    position + 1
-                )
-                .trim();
+            line.slice(position + 1).trim();
 
-
-        /*
-         * 删除首尾引号。
-         */
-
-        if(
+        if (
             value.length >= 2 &&
             (
                 (
@@ -197,21 +97,12 @@ function parseINI(text){
                     value.endsWith("'")
                 )
             )
-        ){
-
-            value =
-                value.slice(
-                    1,
-                    -1
-                );
-
+        ) {
+            value = value.slice(1, -1);
         }
 
-
-        current[key] =
-            value;
+        current[key] = value;
     }
-
 
     return sections;
 }
@@ -219,40 +110,26 @@ function parseINI(text){
 
 /*
  * ============================================================
- * 配置转换
+ * 构建配置
  * ============================================================
  */
 
-function buildConfig(text){
+function buildConfig(text) {
 
-    const sections =
-        parseINI(text);
-
-
-    /*
-     * 网站配置。
-     */
+    const sections = parseINI(text);
 
     let siteSection = null;
 
+    for (const section of sections) {
 
-    for(
-        const item of sections
-    ){
-
-        if(
-            String(item.section)
-                .toLowerCase() ===
+        if (
+            String(section.section).toLowerCase() ===
             "site"
-        ){
-
-            siteSection =
-                item;
-
+        ) {
+            siteSection = section;
             break;
         }
     }
-
 
     const site = {
 
@@ -273,125 +150,98 @@ function buildConfig(text){
             siteSection.description
                 ? siteSection.description
                 : "收听你喜欢的网络电台"
-
     };
 
 
-    /*
-     * 电台列表。
-     */
-
     const stations = [];
 
+    for (const section of sections) {
 
-    for(
-        const item of sections
-    ){
-
-        if(!item.url){
-
+        if (!section.url) {
             continue;
         }
-
 
         const url =
-            String(item.url)
-                .trim();
+            String(section.url).trim();
 
-
-        /*
-         * 只接受 HTTP / HTTPS。
-         */
-
-        if(
-            !url.startsWith(
-                "http://"
-            ) &&
-            !url.startsWith(
-                "https://"
-            )
-        ){
-
+        if (
+            !url.startsWith("http://") &&
+            !url.startsWith("https://")
+        ) {
             continue;
         }
-
 
         stations.push({
 
+            id:
+                String(
+                    section.id ||
+                    section.section ||
+                    stations.length + 1
+                ),
+
             name:
-                item.name ||
+                section.name ||
                 "未命名电台",
 
-            url:
-                url,
+            url,
 
             type:
-                item.type ||
-                "mp3",
+                String(
+                    section.type ||
+                    "mp3"
+                ).toLowerCase(),
 
             category:
-                item.category ||
+                section.category ||
                 "网络电台",
 
             description:
-                item.description ||
+                section.description ||
                 ""
-
         });
-
     }
 
 
     return {
 
-        site:
-            site,
+        site,
 
-        stations:
-            stations,
+        stations,
 
         generatedAt:
             Date.now()
-
     };
 }
 
 
 /*
  * ============================================================
- * 带超时的 GitHub 请求
+ * GitHub 配置读取
  * ============================================================
  */
 
-async function fetchGitHubConfig(){
+async function fetchGitHubConfig() {
 
     const controller =
         new AbortController();
 
-
-    const timeout =
+    const timer =
         setTimeout(
-            function(){
-
-                controller.abort();
-
-            },
+            () => controller.abort(),
             FETCH_TIMEOUT
         );
 
-
-    try{
+    try {
 
         const response =
             await fetch(
                 GITHUB_CONFIG_URL,
                 {
-                    method:"GET",
+                    method: "GET",
 
-                    headers:{
-                        "Accept":
-                            "text/plain",
-
+                    headers: {
+                        "Accept": "text/plain",
                         "User-Agent":
                             "Cloudflare-Radio-Station"
                     },
@@ -399,21 +249,20 @@ async function fetchGitHubConfig(){
                     signal:
                         controller.signal,
 
-                    cf:{
-                        cacheTtl:30,
-                        cacheEverything:true
+                    cf: {
+                        cacheTtl: 30,
+                        cacheEverything: true
                     }
                 }
             );
 
 
-        if(!response.ok){
+        if (!response.ok) {
 
             throw new Error(
                 "GitHub HTTP " +
                 response.status
             );
-
         }
 
 
@@ -421,65 +270,51 @@ async function fetchGitHubConfig(){
             await response.text();
 
 
-        if(
-            !text ||
-            !text.trim()
-        ){
+        if (!text.trim()) {
 
             throw new Error(
                 "config.ini 为空"
             );
-
         }
 
 
         return text;
 
-    }finally{
+    } finally {
 
-        clearTimeout(
-            timeout
-        );
-
+        clearTimeout(timer);
     }
-
 }
 
 
 /*
  * ============================================================
- * 获取最新配置
+ * 获取配置
  * ============================================================
  */
 
-async function getConfig(){
+async function getConfig() {
 
-    const now =
-        Date.now();
+    const now = Date.now();
 
 
     /*
-     * Worker 内存缓存。
+     * Worker 内存缓存
      */
 
-    if(
+    if (
         memoryCache &&
-        (
-            now -
-            memoryCacheTime
-        ) < CACHE_TTL
-    ){
-
+        now - memoryCacheTime < CACHE_TTL
+    ) {
         return memoryCache;
-
     }
 
 
     /*
-     * 尝试读取 GitHub。
+     * 从 GitHub 获取
      */
 
-    try{
+    try {
 
         const text =
             await fetchGitHubConfig();
@@ -490,26 +325,23 @@ async function getConfig(){
 
 
         /*
-         * 配置为空时，
-         * 如果以前有成功配置，
-         * 不立即覆盖。
+         * 防止错误配置把正常配置覆盖掉
          */
 
-        if(
+        if (
             config.stations.length === 0 &&
             memoryCache &&
             memoryCache.stations.length > 0
-        ){
+        ) {
 
-            memoryCacheTime =
-                now;
+            memoryCacheTime = now;
 
             return memoryCache;
         }
 
 
         /*
-         * 保存最近一次成功配置。
+         * 保存最近一次正常配置
          */
 
         memoryCache =
@@ -521,28 +353,19 @@ async function getConfig(){
 
         return config;
 
-    }catch(error){
+    } catch (error) {
 
         /*
          * GitHub 暂时不可用：
-         *
-         * 返回最近成功配置。
+         * 使用最近一次成功配置
          */
 
-        if(memoryCache){
-
+        if (memoryCache) {
             return memoryCache;
-
         }
-
-
-        /*
-         * 第一次启动且 GitHub 无法访问。
-         */
 
         throw error;
     }
-
 }
 
 
@@ -554,67 +377,37 @@ async function getConfig(){
 
 function jsonResponse(
     data,
-    status = 200,
-    extraHeaders = {}
-){
-
-    const headers =
-        new Headers();
-
-
-    headers.set(
-        "Content-Type",
-        "application/json; charset=utf-8"
-    );
-
-
-    headers.set(
-        "Cache-Control",
-        "public, max-age=30, s-maxage=30"
-    );
-
-
-    headers.set(
-        "Access-Control-Allow-Origin",
-        "*"
-    );
-
-
-    headers.set(
-        "Access-Control-Allow-Methods",
-        "GET, OPTIONS"
-    );
-
-
-    headers.set(
-        "Access-Control-Allow-Headers",
-        "Content-Type"
-    );
-
-
-    for(
-        const key in extraHeaders
-    ){
-
-        headers.set(
-            key,
-            extraHeaders[key]
-        );
-
-    }
-
+    status = 200
+) {
 
     return new Response(
-        JSON.stringify(data),
+        JSON.stringify(
+            data,
+            null,
+            2
+        ),
         {
-            status:
-                status,
+            status,
 
-            headers:
-                headers
+            headers: {
+
+                "Content-Type":
+                    "application/json; charset=utf-8",
+
+                "Cache-Control":
+                    "public, max-age=30, s-maxage=30",
+
+                "Access-Control-Allow-Origin":
+                    "*",
+
+                "Access-Control-Allow-Methods":
+                    "GET, OPTIONS",
+
+                "Access-Control-Allow-Headers":
+                    "Content-Type"
+            }
         }
     );
-
 }
 
 
@@ -624,27 +417,23 @@ function jsonResponse(
  * ============================================================
  */
 
-async function handleAPI(request){
+async function handleAPI(request) {
 
     const url =
-        new URL(
-            request.url
-        );
+        new URL(request.url);
 
 
     /*
-     * OPTIONS
+     * CORS OPTIONS
      */
 
-    if(
-        request.method ===
-        "OPTIONS"
-    ){
+    if (
+        request.method === "OPTIONS"
+    ) {
 
         return jsonResponse({
-            ok:true
+            ok: true
         });
-
     }
 
 
@@ -652,29 +441,27 @@ async function handleAPI(request){
      * /api/stations
      */
 
-    if(
+    if (
         url.pathname ===
         "/api/stations"
-    ){
+    ) {
 
-        if(
-            request.method !==
-            "GET"
-        ){
+        if (
+            request.method !== "GET"
+        ) {
 
             return jsonResponse(
                 {
-                    ok:false,
+                    ok: false,
                     error:
                         "Method Not Allowed"
                 },
                 405
             );
-
         }
 
 
-        try{
+        try {
 
             const config =
                 await getConfig();
@@ -682,7 +469,7 @@ async function handleAPI(request){
 
             return jsonResponse({
 
-                ok:true,
+                ok: true,
 
                 site:
                     config.site,
@@ -695,23 +482,37 @@ async function handleAPI(request){
 
                 generatedAt:
                     config.generatedAt
-
             });
 
-        }catch(error){
+
+        } catch (error) {
+
+            /*
+             * 这次特意把真实错误显示出来，
+             * 方便以后排查 GitHub / config.ini 问题。
+             */
 
             return jsonResponse(
                 {
-                    ok:false,
+                    ok: false,
 
                     error:
-                        "暂时无法读取 GitHub 中的 config.ini"
+                        "无法读取 GitHub 中的 config.ini",
+
+                    detail:
+                        String(
+                            error &&
+                            error.message
+                                ? error.message
+                                : error
+                        ),
+
+                    github:
+                        GITHUB_CONFIG_URL
                 },
                 503
             );
-
         }
-
     }
 
 
@@ -721,7 +522,7 @@ async function handleAPI(request){
 
 /*
  * ============================================================
- * Cloudflare Pages / Workers
+ * Cloudflare Pages Worker
  * ============================================================
  */
 
@@ -731,36 +532,27 @@ export default {
         request,
         env,
         ctx
-    ){
+    ) {
 
         /*
-         * API 优先。
+         * API 优先
          */
 
         const apiResponse =
-            await handleAPI(
-                request
-            );
+            await handleAPI(request);
 
 
-        if(apiResponse){
-
+        if (apiResponse) {
             return apiResponse;
-
         }
 
 
         /*
-         * 其它文件：
-         *
-         * 交给 Cloudflare Pages
-         * 静态资源系统。
+         * 其它请求交给 Pages 静态资源
          */
 
         return env.ASSETS.fetch(
             request
         );
-
     }
-
 };
