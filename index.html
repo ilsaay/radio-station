@@ -1,904 +1,1956 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
+
 <head>
+
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="description" content="在线网络广播">
+
+<meta
+    name="viewport"
+    content="width=device-width,initial-scale=1.0"
+>
+
+<meta
+    name="theme-color"
+    content="#ff6a00"
+>
+
 <title>广播电台</title>
 
 <style>
-*{
-    box-sizing:border-box;
+
+* {
+    box-sizing: border-box;
 }
 
 html,
-body{
-    margin:0;
-    padding:0;
-}
-
-body{
-    background:#f6f7f9;
-    color:#222;
+body {
+    margin: 0;
+    padding: 0;
     font-family:
         -apple-system,
         BlinkMacSystemFont,
         "Segoe UI",
         "Microsoft YaHei",
-        Arial,
         sans-serif;
+
+    background: #f5f5f5;
+    color: #222;
 }
 
-.header{
-    height:64px;
-    background:#fff;
-    border-bottom:1px solid #eee;
-    display:flex;
-    align-items:center;
-    padding:0 28px;
-    position:sticky;
-    top:0;
-    z-index:10;
+body {
+    padding-bottom: 100px;
 }
 
-.logo{
-    color:#f04b23;
-    font-size:22px;
-    font-weight:700;
-    margin-right:36px;
-    white-space:nowrap;
+
+/* =========================================================
+   Header
+   ========================================================= */
+
+.header {
+
+    height: 64px;
+
+    background: #fff;
+
+    border-bottom:
+        1px solid #eee;
+
+    display: flex;
+
+    align-items: center;
+
+    padding:
+        0 28px;
+
+    position: sticky;
+
+    top: 0;
+
+    z-index: 100;
 }
 
-.nav{
-    display:flex;
-    gap:28px;
+.logo {
+
+    font-size: 24px;
+
+    font-weight: 800;
+
+    color: #ff5a00;
+
+    white-space: nowrap;
 }
 
-.nav span{
-    color:#666;
-    cursor:pointer;
-    font-size:14px;
+.nav {
+
+    display: flex;
+
+    margin-left: 38px;
+
+    gap: 30px;
+
+    height: 100%;
+
+    align-items: center;
 }
 
-.nav span.active{
-    color:#f04b23;
-    font-weight:600;
+.nav-item {
+
+    color: #555;
+
+    text-decoration: none;
+
+    font-size: 15px;
 }
 
-.search{
-    width:260px;
-    height:38px;
-    margin-left:auto;
-    border:0;
-    outline:none;
-    border-radius:20px;
-    background:#f5f5f5;
-    padding:0 17px;
-    font-size:14px;
+.nav-item.active {
+
+    color: #ff5a00;
+
+    font-weight: 700;
 }
 
-.main{
-    max-width:1180px;
-    margin:24px auto;
-    padding:0 20px 120px;
+.search {
+
+    margin-left: auto;
+
+    width: 260px;
+
+    height: 38px;
+
+    border-radius: 20px;
+
+    background: #f5f5f5;
+
+    display: flex;
+
+    align-items: center;
+
+    padding: 0 16px;
 }
 
-.hero{
-    min-height:155px;
-    padding:30px;
-    border-radius:18px;
-    display:flex;
-    align-items:center;
+.search input {
+
+    border: 0;
+
+    outline: 0;
+
+    background: transparent;
+
+    width: 100%;
+
+    font-size: 14px;
+}
+
+
+/* =========================================================
+   Hero
+   ========================================================= */
+
+.hero {
+
+    max-width: 1200px;
+
+    margin:
+        24px auto;
+
+    padding:
+        38px 42px;
+
+    border-radius: 18px;
+
     background:
         linear-gradient(
             135deg,
-            #fff1eb,
-            #fff
+            #ff7a18,
+            #ff4b00
         );
+
+    color: #fff;
+
+    box-shadow:
+        0 10px 30px
+        rgba(255,90,0,.15);
 }
 
-.hero h1{
-    margin:0 0 10px;
-    font-size:30px;
+.hero h1 {
+
+    margin: 0 0 10px;
+
+    font-size: 34px;
 }
 
-.hero p{
-    margin:0;
-    color:#888;
-    font-size:14px;
+.hero p {
+
+    margin: 0;
+
+    opacity: .9;
+
+    font-size: 15px;
 }
 
-.message{
-    margin-top:18px;
+
+/* =========================================================
+   Container
+   ========================================================= */
+
+.container {
+
+    max-width: 1200px;
+
+    margin: 0 auto;
+
+    padding: 0 20px;
 }
 
-.error{
-    padding:14px 16px;
-    background:#fff0f0;
-    color:#c33;
-    border-radius:10px;
-    font-size:14px;
+.section-title {
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: space-between;
+
+    margin:
+        30px 0 18px;
 }
 
-.grid{
-    display:grid;
+.section-title h2 {
+
+    margin: 0;
+
+    font-size: 22px;
+}
+
+.station-count {
+
+    color: #999;
+
+    font-size: 14px;
+}
+
+
+/* =========================================================
+   Grid
+   ========================================================= */
+
+.grid {
+
+    display: grid;
+
     grid-template-columns:
         repeat(
             auto-fill,
-            minmax(250px,1fr)
+            minmax(260px, 1fr)
         );
-    gap:18px;
-    margin-top:24px;
+
+    gap: 18px;
 }
 
-.card{
-    min-height:145px;
-    padding:18px;
-    background:#fff;
-    border:1px solid #eee;
-    border-radius:15px;
-    cursor:pointer;
+.card {
+
+    background: #fff;
+
+    border-radius: 14px;
+
+    padding: 20px;
+
+    border:
+        1px solid #eee;
+
     transition:
-        transform .15s,
-        box-shadow .15s;
+        transform .2s,
+        box-shadow .2s;
+
+    cursor: pointer;
 }
 
-.card:hover{
-    transform:translateY(-2px);
+.card:hover {
+
+    transform:
+        translateY(-3px);
+
     box-shadow:
-        0 8px 25px
-        rgba(0,0,0,.06);
+        0 10px 30px
+        rgba(0,0,0,.08);
 }
 
-.cover{
-    width:70px;
-    height:70px;
-    float:left;
-    margin-right:15px;
-    border-radius:12px;
-    display:flex;
-    align-items:center;
-    justify-content:center;
+.card.playing {
+
+    border-color:
+        #ff6a00;
+
+    box-shadow:
+        0 5px 20px
+        rgba(255,106,0,.15);
+}
+
+.cover {
+
+    width: 58px;
+
+    height: 58px;
+
+    border-radius: 12px;
+
     background:
         linear-gradient(
             135deg,
-            #ff7043,
-            #ffb199
+            #ff7a18,
+            #ff4b00
         );
-    color:#fff;
-    font-size:30px;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    color: #fff;
+
+    font-size: 25px;
+
+    margin-bottom: 15px;
 }
 
-.name{
-    padding-top:5px;
-    font-size:17px;
-    font-weight:700;
-    white-space:nowrap;
-    overflow:hidden;
-    text-overflow:ellipsis;
+.card-name {
+
+    font-size: 18px;
+
+    font-weight: 700;
+
+    margin-bottom: 7px;
 }
 
-.cat{
-    margin-top:9px;
-    color:#f04b23;
-    font-size:12px;
+.card-category {
+
+    display: inline-block;
+
+    background: #fff1e8;
+
+    color: #ff6200;
+
+    border-radius: 12px;
+
+    padding:
+        3px 9px;
+
+    font-size: 12px;
+
+    margin-bottom: 10px;
 }
 
-.desc{
-    clear:both;
-    padding-top:16px;
-    color:#999;
-    font-size:13px;
-    white-space:nowrap;
-    overflow:hidden;
-    text-overflow:ellipsis;
+.card-description {
+
+    color: #999;
+
+    font-size: 13px;
+
+    line-height: 1.6;
+
+    min-height: 42px;
 }
 
-.empty{
-    grid-column:1/-1;
-    padding:60px 10px;
-    text-align:center;
-    color:#999;
+.play-button {
+
+    margin-top: 16px;
+
+    width: 100%;
+
+    height: 38px;
+
+    border: 0;
+
+    border-radius: 20px;
+
+    background: #fff1e8;
+
+    color: #ff6200;
+
+    font-weight: 600;
+
+    cursor: pointer;
 }
 
-.loading{
-    grid-column:1/-1;
-    padding:60px 10px;
-    text-align:center;
-    color:#999;
+.card.playing
+.play-button {
+
+    background: #ff6200;
+
+    color: #fff;
 }
 
-.player{
-    position:fixed;
-    left:0;
-    right:0;
-    bottom:0;
-    z-index:20;
 
-    min-height:78px;
+/* =========================================================
+   Empty / Error
+   ========================================================= */
 
-    padding:12px 24px;
+.message {
 
-    display:flex;
-    align-items:center;
-    gap:16px;
+    background: #fff;
 
-    background:#fff;
-    border-top:1px solid #ddd;
+    border-radius: 14px;
+
+    padding: 50px 20px;
+
+    text-align: center;
+
+    color: #999;
 }
 
-.play{
-    width:48px;
-    height:48px;
-    flex:none;
+.error {
 
-    border:0;
-    border-radius:50%;
-
-    background:#f04b23;
-    color:#fff;
-
-    font-size:20px;
-    cursor:pointer;
+    color: #d33;
 }
 
-.current{
-    width:190px;
-    min-width:120px;
-    overflow:hidden;
+
+/* =========================================================
+   Player
+   ========================================================= */
+
+.player {
+
+    position: fixed;
+
+    left: 0;
+
+    right: 0;
+
+    bottom: 0;
+
+    height: 82px;
+
+    background:
+        rgba(255,255,255,.97);
+
+    border-top:
+        1px solid #eee;
+
+    backdrop-filter:
+        blur(10px);
+
+    z-index: 200;
+
+    display: flex;
+
+    align-items: center;
+
+    padding:
+        0 28px;
 }
 
-.current b{
-    display:block;
+.player-info {
 
-    white-space:nowrap;
-    overflow:hidden;
-    text-overflow:ellipsis;
+    min-width: 230px;
+
+    max-width: 300px;
 }
 
-.current small{
-    display:block;
-    margin-top:4px;
+.player-name {
 
-    color:#999;
+    font-weight: 700;
 
-    white-space:nowrap;
-    overflow:hidden;
-    text-overflow:ellipsis;
+    font-size: 15px;
 }
 
-.audio{
-    flex:1;
-    min-width:100px;
+.player-status {
+
+    font-size: 12px;
+
+    color: #999;
+
+    margin-top: 4px;
 }
 
-.status{
-    color:#999;
-    font-size:12px;
-    white-space:nowrap;
+.player-controls {
+
+    display: flex;
+
+    align-items: center;
+
+    margin-left: 25px;
 }
 
-@media(max-width:700px){
+.control {
 
-    .header{
-        padding:0 14px;
+    width: 48px;
+
+    height: 48px;
+
+    border-radius: 50%;
+
+    border: 0;
+
+    background: #ff6200;
+
+    color: white;
+
+    cursor: pointer;
+
+    font-size: 20px;
+}
+
+.player-line {
+
+    flex: 1;
+
+    height: 3px;
+
+    margin-left: 25px;
+
+    background: #eee;
+
+    border-radius: 5px;
+
+    overflow: hidden;
+}
+
+.player-line-inner {
+
+    height: 100%;
+
+    width: 0;
+
+    background: #ff6200;
+
+    transition:
+        width .2s;
+}
+
+
+/* =========================================================
+   Responsive
+   ========================================================= */
+
+@media (max-width: 700px) {
+
+    .header {
+
+        padding: 0 15px;
     }
 
-    .nav{
-        display:none;
+    .nav {
+
+        display: none;
     }
 
-    .search{
-        width:160px;
+    .search {
+
+        width: 170px;
     }
 
-    .main{
+    .hero {
+
+        margin:
+            15px;
+
         padding:
-            0 12px
-            120px;
+            28px;
+
     }
 
-    .hero{
-        padding:23px;
+    .hero h1 {
+
+        font-size: 27px;
     }
 
-    .hero h1{
-        font-size:24px;
+    .container {
+
+        padding:
+            0 15px;
     }
 
-    .player{
-        padding:10px 12px;
-        gap:10px;
+    .grid {
+
+        grid-template-columns:
+            1fr;
     }
 
-    .current{
-        width:120px;
+    .player {
+
+        height: 75px;
+
+        padding:
+            0 15px;
     }
 
-    .audio{
-        max-width:40vw;
+    .player-info {
+
+        min-width: 0;
+
+        max-width: 150px;
     }
 
-    .status{
-        display:none;
+    .player-line {
+
+        display: none;
     }
 }
+
 </style>
+
 </head>
 
+
 <body>
+
 
 <header class="header">
 
     <div
         class="logo"
-        id="siteName"
-    >广播电台</div>
+        id="siteLogo"
+    >
+        广播电台
+    </div>
+
 
     <nav class="nav">
-        <span class="active">推荐</span>
-        <span>电台</span>
-        <span>音乐</span>
+
+        <a
+            href="#"
+            class="nav-item active"
+        >
+            首页
+        </a>
+
+        <a
+            href="#stations"
+            class="nav-item"
+        >
+            电台
+        </a>
+
     </nav>
 
-    <input
-        class="search"
-        id="search"
-        type="search"
-        placeholder="搜索电台"
-        autocomplete="off"
-    >
+
+    <div class="search">
+
+        <input
+            id="searchInput"
+            type="search"
+            placeholder="搜索电台..."
+        >
+
+    </div>
 
 </header>
 
 
-<main class="main">
 
-    <section class="hero">
+<section class="hero">
 
-        <div>
+    <h1 id="heroTitle">
+        在线广播
+    </h1>
 
-            <h1 id="heroTitle">
-                在线广播
-            </h1>
+    <p id="heroDescription">
+        收听你喜欢的网络电台
+    </p>
 
-            <p id="heroDescription">
-                收听你喜欢的网络电台
-            </p>
-
-        </div>
-
-    </section>
+</section>
 
 
-    <div
-        class="message"
-        id="message"
-    ></div>
 
+<main
+    class="container"
+    id="stations"
+>
 
-    <section
-        class="grid"
-        id="grid"
-    >
+    <div class="section-title">
 
-        <div class="loading">
-            正在读取电台配置…
-        </div>
+        <h2>
+            网络电台
+        </h2>
 
-    </section>
-
-</main>
-
-
-<div class="player">
-
-    <button
-        class="play"
-        id="play"
-        type="button"
-    >▶</button>
-
-
-    <div class="current">
-
-        <b id="currentName">
-            未选择电台
-        </b>
-
-        <small id="currentCategory">
-            请选择一个电台
-        </small>
+        <span
+            class="station-count"
+            id="stationCount"
+        >
+            读取中...
+        </span>
 
     </div>
 
 
-    <audio
-        class="audio"
-        id="audio"
-        controls
-        preload="none"
-    ></audio>
-
-
     <div
-        class="status"
-        id="status"
-    >就绪</div>
+        id="stationGrid"
+        class="grid"
+    >
+
+        <div class="message">
+            正在加载电台...
+        </div>
+
+    </div>
+
+</main>
+
+
+
+<div class="player">
+
+    <div class="player-info">
+
+        <div
+            class="player-name"
+            id="playerName"
+        >
+            未播放
+        </div>
+
+        <div
+            class="player-status"
+            id="playerStatus"
+        >
+            请选择一个电台
+        </div>
+
+    </div>
+
+
+    <div class="player-controls">
+
+        <button
+            class="control"
+            id="playButton"
+            type="button"
+        >
+            ▶
+        </button>
+
+    </div>
+
+
+    <div class="player-line">
+
+        <div
+            class="player-line-inner"
+            id="playerLine"
+        ></div>
+
+    </div>
 
 </div>
 
 
+
+<audio
+    id="audio"
+    preload="none"
+></audio>
+
+
+
 <script>
-"use strict";
 
-(function(){
+/*
+ * ============================================================
+ * Radio Station Frontend
+ * ============================================================
+ */
 
-    const audio =
-        document.getElementById("audio");
+const audio =
+    document.getElementById(
+        "audio"
+    );
 
-    const grid =
-        document.getElementById("grid");
+const stationGrid =
+    document.getElementById(
+        "stationGrid"
+    );
 
-    const message =
-        document.getElementById("message");
+const stationCount =
+    document.getElementById(
+        "stationCount"
+    );
 
-    const search =
-        document.getElementById("search");
+const playerName =
+    document.getElementById(
+        "playerName"
+    );
 
-    const play =
-        document.getElementById("play");
+const playerStatus =
+    document.getElementById(
+        "playerStatus"
+    );
 
-    const siteName =
-        document.getElementById("siteName");
+const playButton =
+    document.getElementById(
+        "playButton"
+    );
 
-    const heroTitle =
-        document.getElementById("heroTitle");
+const playerLine =
+    document.getElementById(
+        "playerLine"
+    );
 
-    const heroDescription =
-        document.getElementById("heroDescription");
+const searchInput =
+    document.getElementById(
+        "searchInput"
+    );
 
-    const currentName =
-        document.getElementById("currentName");
+const siteLogo =
+    document.getElementById(
+        "siteLogo"
+    );
 
-    const currentCategory =
-        document.getElementById("currentCategory");
+const heroTitle =
+    document.getElementById(
+        "heroTitle"
+    );
 
-    const status =
-        document.getElementById("status");
-
-
-    let stations = [];
-
-    let current = null;
-
-
-    function showError(text){
-
-        message.textContent = "";
-
-        const box =
-            document.createElement("div");
-
-        box.className = "error";
-
-        box.textContent = text;
-
-        message.appendChild(box);
-    }
-
-
-    function clearError(){
-
-        message.textContent = "";
-    }
+const heroDescription =
+    document.getElementById(
+        "heroDescription"
+    );
 
 
-    function render(list){
+let stations = [];
 
-        grid.textContent = "";
+let currentStation = null;
 
-        if(!list.length){
+let currentHLS = null;
 
-            const empty =
-                document.createElement("div");
 
-            empty.className = "empty";
+/*
+ * ============================================================
+ * Escape HTML
+ * ============================================================
+ */
 
-            empty.textContent =
-                "没有找到电台";
+function escapeHTML(value) {
 
-            grid.appendChild(empty);
+    return String(value ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+}
 
-            return;
+
+/*
+ * ============================================================
+ * Load configuration
+ * ============================================================
+ */
+
+async function loadStations() {
+
+    try {
+
+        const response =
+            await fetch(
+                "/api/stations?" +
+                Date.now(),
+                {
+                    cache:
+                        "no-store"
+                }
+            );
+
+
+        if (!response.ok) {
+
+            throw new Error(
+                "服务器 HTTP " +
+                response.status
+            );
         }
 
 
-        list.forEach(function(station,index){
-
-            const card =
-                document.createElement("article");
-
-            card.className = "card";
+        const data =
+            await response.json();
 
 
-            const cover =
-                document.createElement("div");
+        if (!data.ok) {
 
-            cover.className = "cover";
-
-            cover.textContent = "♪";
-
-
-            const name =
-                document.createElement("div");
-
-            name.className = "name";
-
-            name.textContent =
-                station.name ||
-                ("电台 " + (index + 1));
+            throw new Error(
+                data.error ||
+                "读取配置失败"
+            );
+        }
 
 
-            const category =
-                document.createElement("div");
-
-            category.className = "cat";
-
-            category.textContent =
-                station.category ||
-                "网络电台";
+        stations =
+            Array.isArray(
+                data.stations
+            )
+                ? data.stations
+                : [];
 
 
-            const description =
-                document.createElement("div");
+        if (data.site) {
 
-            description.className = "desc";
+            siteLogo.textContent =
+                data.site.name ||
+                "广播电台";
 
-            description.textContent =
-                station.description ||
-                station.url;
+            heroTitle.textContent =
+                data.site.title ||
+                "在线广播";
+
+            heroDescription.textContent =
+                data.site.description ||
+                "";
+            
+
+            document.title =
+                data.site.title ||
+                data.site.name ||
+                "广播电台";
+        }
 
 
-            card.appendChild(cover);
-            card.appendChild(name);
-            card.appendChild(category);
-            card.appendChild(description);
+        renderStations();
 
+
+    } catch (error) {
+
+        stationGrid.innerHTML = `
+
+            <div class="message error">
+
+                无法读取电台配置：
+
+                ${escapeHTML(
+                    error.message
+                )}
+
+            </div>
+
+        `;
+
+        stationCount.textContent =
+            "加载失败";
+    }
+}
+
+
+/*
+ * ============================================================
+ * Render
+ * ============================================================
+ */
+
+function renderStations() {
+
+    const keyword =
+        searchInput.value
+            .trim()
+            .toLowerCase();
+
+
+    const filtered =
+        stations.filter(
+            station => {
+
+                const text =
+                    (
+                        station.name +
+                        " " +
+                        station.category +
+                        " " +
+                        station.description
+                    ).toLowerCase();
+
+                return text.includes(
+                    keyword
+                );
+            }
+        );
+
+
+    stationCount.textContent =
+        filtered.length +
+        " 个电台";
+
+
+    if (!filtered.length) {
+
+        stationGrid.innerHTML = `
+
+            <div class="message">
+
+                没有找到相关电台
+
+            </div>
+
+        `;
+
+        return;
+    }
+
+
+    stationGrid.innerHTML =
+        filtered
+            .map(
+                station =>
+                    stationCard(
+                        station
+                    )
+            )
+            .join("");
+
+
+    document
+        .querySelectorAll(
+            ".station-card"
+        )
+        .forEach(card => {
 
             card.addEventListener(
                 "click",
-                function(){
-                    playStation(station);
+                () => {
+
+                    const id =
+                        card.dataset.id;
+
+                    const station =
+                        stations.find(
+                            item =>
+                                String(
+                                    item.id
+                                ) ===
+                                String(id)
+                        );
+
+                    if (station) {
+
+                        playStation(
+                            station
+                        );
+                    }
+                }
+            );
+        });
+
+
+    updatePlayingCards();
+}
+
+
+/*
+ * ============================================================
+ * Card
+ * ============================================================
+ */
+
+function stationCard(
+    station
+) {
+
+    const id =
+        escapeHTML(
+            station.id
+        );
+
+    const name =
+        escapeHTML(
+            station.name
+        );
+
+    const category =
+        escapeHTML(
+            station.category ||
+            "网络电台"
+        );
+
+    const description =
+        escapeHTML(
+            station.description ||
+            "在线广播"
+        );
+
+    const type =
+        String(
+            station.type ||
+            ""
+        ).toUpperCase();
+
+
+    return `
+
+        <article
+            class="card station-card"
+            data-id="${id}"
+        >
+
+            <div class="cover">
+                ♪
+            </div>
+
+            <div class="card-name">
+                ${name}
+            </div>
+
+            <div class="card-category">
+                ${category}
+            </div>
+
+            <div class="card-description">
+                ${description}
+            </div>
+
+            <button
+                class="play-button"
+                type="button"
+            >
+                ▶ 播放 ${type}
+            </button>
+
+        </article>
+
+    `;
+}
+
+
+/*
+ * ============================================================
+ * Build Worker HLS URL
+ * ============================================================
+ */
+
+function workerHLSURL(
+    source
+) {
+
+    return (
+        "/api/hls?url=" +
+        encodeURIComponent(
+            source
+        )
+    );
+}
+
+
+/*
+ * ============================================================
+ * Native HLS test
+ * ============================================================
+ */
+
+function supportsNativeHLS() {
+
+    const test =
+        document.createElement(
+            "video"
+        );
+
+    return !!(
+        test.canPlayType(
+            "application/vnd.apple.mpegurl"
+        ) ||
+        test.canPlayType(
+            "application/x-mpegURL"
+        )
+    );
+}
+
+
+/*
+ * ============================================================
+ * Play MP3
+ * ============================================================
+ */
+
+async function playMP3(
+    station
+) {
+
+    stopHLS();
+
+
+    audio.src =
+        station.url;
+
+
+    audio.load();
+
+
+    await audio.play();
+}
+
+
+/*
+ * ============================================================
+ * Play HLS
+ * ============================================================
+ */
+
+async function playHLS(
+    station
+) {
+
+    const url =
+        workerHLSURL(
+            station.url
+        );
+
+
+    /*
+     * Safari / 原生 HLS
+     */
+
+    if (
+        supportsNativeHLS()
+    ) {
+
+        stopHLS();
+
+
+        audio.src =
+            url;
+
+        audio.load();
+
+        await audio.play();
+
+        return;
+    }
+
+
+    /*
+     * Chrome / Firefox
+     *
+     * 使用内置 HLS 引擎。
+     */
+
+    await startBuiltInHLS(
+        url
+    );
+}
+
+
+/*
+ * ============================================================
+ * Minimal HLS engine
+ *
+ * 这里不依赖 npm。
+ *
+ * 对常见 AAC/TS HLS 做基础处理。
+ * ============================================================
+ */
+
+async function startBuiltInHLS(
+    playlistURL
+) {
+
+    stopHLS();
+
+
+    playerStatus.textContent =
+        "正在连接 HLS...";
+
+
+    const response =
+        await fetch(
+            playlistURL,
+            {
+                cache:
+                    "no-store"
+            }
+        );
+
+
+    if (!response.ok) {
+
+        throw new Error(
+            "HLS HTTP " +
+            response.status
+        );
+    }
+
+
+    const text =
+        await response.text();
+
+
+    /*
+     * 直播 HLS 通常是 TS/AAC 分片。
+     *
+     * 浏览器 MediaSource 支持时，
+     * 尝试建立 SourceBuffer。
+     */
+
+    if (
+        !window.MediaSource
+    ) {
+
+        throw new Error(
+            "当前浏览器不支持 MediaSource"
+        );
+    }
+
+
+    const mimeTypes = [
+
+        'audio/mp4; codecs="mp4a.40.2"',
+
+        'audio/mpeg',
+
+        'audio/aac'
+    ];
+
+
+    let mime = null;
+
+
+    for (
+        const candidate
+        of mimeTypes
+    ) {
+
+        if (
+            MediaSource.isTypeSupported(
+                candidate
+            )
+        ) {
+
+            mime = candidate;
+
+            break;
+        }
+    }
+
+
+    /*
+     * 如果没有兼容 MIME，
+     * 不能直接把 MPEG-TS 放进 SourceBuffer。
+     */
+
+    if (!mime) {
+
+        throw new Error(
+            "Chrome 无法直接解析此 HLS 音频格式"
+        );
+    }
+
+
+    /*
+     * 当前 Worker 已经把 playlist
+     * 重写成代理地址。
+     *
+     * 读取第一个媒体分片。
+     */
+
+    const mediaURLs =
+        extractMediaURLs(
+            text,
+            playlistURL
+        );
+
+
+    if (!mediaURLs.length) {
+
+        throw new Error(
+            "HLS 中没有找到媒体分片"
+        );
+    }
+
+
+    /*
+     * 对 AAC / MP4 类 HLS，
+     * 使用 MediaSource。
+     */
+
+    const mediaSource =
+        new MediaSource();
+
+
+    currentHLS = {
+
+        mediaSource,
+
+        playlistURL,
+
+        urls:
+            mediaURLs,
+
+        index: 0
+    };
+
+
+    const objectURL =
+        URL.createObjectURL(
+            mediaSource
+        );
+
+
+    audio.src =
+        objectURL;
+
+
+    mediaSource.addEventListener(
+        "sourceopen",
+        () => {
+
+            try {
+
+                const buffer =
+                    mediaSource.addSourceBuffer(
+                        mime
+                    );
+
+
+                currentHLS.buffer =
+                    buffer;
+
+
+                appendNextHLSSegment();
+
+            } catch (error) {
+
+                playerStatus.textContent =
+                    error.message;
+            }
+        }
+    );
+
+
+    audio.load();
+
+
+    await audio.play();
+}
+
+
+/*
+ * ============================================================
+ * Extract media URLs
+ * ============================================================
+ */
+
+function extractMediaURLs(
+    text,
+    base
+) {
+
+    const result = [];
+
+
+    for (
+        const line
+        of text.split(/\r?\n/)
+    ) {
+
+        const value =
+            line.trim();
+
+
+        if (
+            !value ||
+            value.startsWith("#")
+        ) {
+
+            continue;
+        }
+
+
+        try {
+
+            result.push(
+                new URL(
+                    value,
+                    location.origin
+                ).toString()
+            );
+
+        } catch {}
+    }
+
+
+    return result;
+}
+
+
+/*
+ * ============================================================
+ * Append HLS segment
+ * ============================================================
+ */
+
+async function appendNextHLSSegment() {
+
+    if (!currentHLS) {
+        return;
+    }
+
+
+    const state =
+        currentHLS;
+
+
+    if (
+        state.index >=
+        state.urls.length
+    ) {
+
+        /*
+         * 直播 HLS：
+         * 重新读取 playlist。
+         */
+
+        setTimeout(
+            refreshHLSPlaylist,
+            1000
+        );
+
+        return;
+    }
+
+
+    const url =
+        state.urls[
+            state.index++
+        ];
+
+
+    try {
+
+        const response =
+            await fetch(
+                url
+            );
+
+
+        if (!response.ok) {
+
+            throw new Error(
+                "分片 HTTP " +
+                response.status
+            );
+        }
+
+
+        const data =
+            await response.arrayBuffer();
+
+
+        await waitForBuffer(
+            state.buffer
+        );
+
+
+        state.buffer.appendBuffer(
+            data
+        );
+
+
+        state.buffer.addEventListener(
+            "updateend",
+            appendNextHLSSegment,
+            {
+                once: true
+            }
+        );
+
+
+    } catch (error) {
+
+        playerStatus.textContent =
+            "HLS 分片播放失败：" +
+            error.message;
+    }
+}
+
+
+/*
+ * ============================================================
+ * Wait SourceBuffer
+ * ============================================================
+ */
+
+function waitForBuffer(
+    buffer
+) {
+
+    return new Promise(
+        resolve => {
+
+            if (!buffer.updating) {
+
+                resolve();
+
+                return;
+            }
+
+
+            buffer.addEventListener(
+                "updateend",
+                resolve,
+                {
+                    once: true
+                }
+            );
+        }
+    );
+}
+
+
+/*
+ * ============================================================
+ * Refresh live playlist
+ * ============================================================
+ */
+
+async function refreshHLSPlaylist() {
+
+    if (!currentHLS) {
+        return;
+    }
+
+
+    try {
+
+        const response =
+            await fetch(
+                currentHLS.playlistURL +
+                "&_=" +
+                Date.now(),
+                {
+                    cache:
+                        "no-store"
                 }
             );
 
 
-            grid.appendChild(card);
+        if (!response.ok) {
+            throw new Error();
+        }
 
-        });
+
+        const text =
+            await response.text();
+
+
+        const urls =
+            extractMediaURLs(
+                text,
+                currentHLS.playlistURL
+            );
+
+
+        currentHLS.urls =
+            urls;
+
+
+        currentHLS.index = 0;
+
+
+        appendNextHLSSegment();
+
+    } catch {
+
+        setTimeout(
+            refreshHLSPlaylist,
+            1500
+        );
+    }
+}
+
+
+/*
+ * ============================================================
+ * Stop HLS
+ * ============================================================
+ */
+
+function stopHLS() {
+
+    currentHLS = null;
+
+
+    if (
+        audio.src &&
+        audio.src.startsWith(
+            "blob:"
+        )
+    ) {
+
+        URL.revokeObjectURL(
+            audio.src
+        );
+    }
+}
+
+
+/*
+ * ============================================================
+ * Play Station
+ * ============================================================
+ */
+
+async function playStation(
+    station
+) {
+
+    currentStation =
+        station;
+
+
+    playerName.textContent =
+        station.name;
+
+
+    playerStatus.textContent =
+        "正在连接...";
+
+
+    playButton.textContent =
+        "❚❚";
+
+
+    updatePlayingCards();
+
+
+    try {
+
+        const type =
+            String(
+                station.type ||
+                ""
+            ).toLowerCase();
+
+
+        if (
+            type === "m3u8" ||
+            /\.m3u8(?:\?|$)/i.test(
+                station.url
+            )
+        ) {
+
+            await playHLS(
+                station
+            );
+
+        } else {
+
+            await playMP3(
+                station
+            );
+        }
+
+
+        playerStatus.textContent =
+            "正在播放";
+
+        playButton.textContent =
+            "❚❚";
+
+
+    } catch (error) {
+
+        console.error(
+            error
+        );
+
+
+        playerStatus.textContent =
+            "播放失败：" +
+            error.message;
+
+
+        playButton.textContent =
+            "▶";
     }
 
 
-    function playStation(station){
+    updatePlayingCards();
+}
 
-        if(
-            !station ||
-            !station.url
-        ){
+
+/*
+ * ============================================================
+ * Playing card state
+ * ============================================================
+ */
+
+function updatePlayingCards() {
+
+    document
+        .querySelectorAll(
+            ".station-card"
+        )
+        .forEach(card => {
+
+            const playing =
+                currentStation &&
+                String(
+                    currentStation.id
+                ) ===
+                String(
+                    card.dataset.id
+                );
+
+
+            card.classList.toggle(
+                "playing",
+                !!playing
+            );
+        });
+}
+
+
+/*
+ * ============================================================
+ * Play / Pause
+ * ============================================================
+ */
+
+playButton.addEventListener(
+    "click",
+    async () => {
+
+        if (!currentStation) {
             return;
         }
 
 
-        current = station;
+        if (
+            audio.paused
+        ) {
 
+            try {
 
-        currentName.textContent =
-            station.name ||
-            "网络电台";
+                await audio.play();
 
+                playButton.textContent =
+                    "❚❚";
 
-        currentCategory.textContent =
-            station.category ||
-            "网络电台";
+                playerStatus.textContent =
+                    "正在播放";
 
+            } catch (error) {
 
-        status.textContent =
-            "连接中…";
+                playerStatus.textContent =
+                    "播放失败：" +
+                    error.message;
+            }
 
+        } else {
 
-        audio.src =
-            station.url;
+            audio.pause();
 
+            playButton.textContent =
+                "▶";
 
-        const promise =
-            audio.play();
-
-
-        if(
-            promise &&
-            typeof promise.catch === "function"
-        ){
-
-            promise.catch(function(){
-
-                status.textContent =
-                    "请点击播放";
-
-            });
+            playerStatus.textContent =
+                "已暂停";
         }
     }
+);
 
 
-    play.addEventListener(
-        "click",
-        function(){
+/*
+ * ============================================================
+ * Audio events
+ * ============================================================
+ */
 
-            if(!current){
+audio.addEventListener(
+    "playing",
+    () => {
 
-                status.textContent =
-                    "请先选择一个电台";
+        playButton.textContent =
+            "❚❚";
 
-                return;
-            }
+        if (currentStation) {
 
-
-            if(audio.paused){
-
-                const promise =
-                    audio.play();
-
-                if(
-                    promise &&
-                    typeof promise.catch ===
-                    "function"
-                ){
-
-                    promise.catch(function(){
-
-                        status.textContent =
-                            "播放失败";
-
-                    });
-                }
-
-            }else{
-
-                audio.pause();
-
-            }
-
-        }
-    );
-
-
-    audio.addEventListener(
-        "play",
-        function(){
-
-            play.textContent = "Ⅱ";
-
-            status.textContent =
+            playerStatus.textContent =
                 "正在播放";
-
         }
-    );
-
-
-    audio.addEventListener(
-        "pause",
-        function(){
-
-            play.textContent = "▶";
-
-        }
-    );
-
-
-    audio.addEventListener(
-        "waiting",
-        function(){
-
-            status.textContent =
-                "缓冲中…";
-
-        }
-    );
-
-
-    audio.addEventListener(
-        "playing",
-        function(){
-
-            status.textContent =
-                "正在播放";
-
-        }
-    );
-
-
-    audio.addEventListener(
-        "error",
-        function(){
-
-            status.textContent =
-                "播放失败";
-
-        }
-    );
-
-
-    function loadStations(){
-
-        fetch(
-            "/api/stations",
-            {
-                method:"GET",
-                cache:"no-store",
-                headers:{
-                    "Accept":
-                        "application/json"
-                }
-            }
-        )
-
-        .then(function(response){
-
-            if(!response.ok){
-
-                throw new Error(
-                    "服务器 HTTP " +
-                    response.status
-                );
-
-            }
-
-            return response.json();
-
-        })
-
-        .then(function(data){
-
-            if(
-                !data ||
-                !Array.isArray(data.stations)
-            ){
-
-                throw new Error(
-                    "服务器返回格式错误"
-                );
-
-            }
-
-
-            stations =
-                data.stations;
-
-
-            if(data.site){
-
-                if(data.site.name){
-
-                    siteName.textContent =
-                        data.site.name;
-
-                    document.title =
-                        data.site.name;
-                }
-
-
-                if(data.site.title){
-
-                    heroTitle.textContent =
-                        data.site.title;
-                }
-
-
-                if(data.site.description){
-
-                    heroDescription.textContent =
-                        data.site.description;
-                }
-
-            }
-
-
-            render(stations);
-
-
-            if(stations.length){
-
-                clearError();
-
-            }else{
-
-                showError(
-                    "config.ini 中尚未配置电台。"
-                );
-
-            }
-
-        })
-
-        .catch(function(error){
-
-            if(stations.length){
-
-                return;
-            }
-
-
-            grid.textContent = "";
-
-
-            showError(
-                "无法读取电台配置：" +
-                error.message
-            );
-
-        });
     }
+);
 
 
-    search.addEventListener(
-        "input",
-        function(){
+audio.addEventListener(
+    "pause",
+    () => {
 
-            const keyword =
-                search.value
-                    .trim()
-                    .toLowerCase();
-
-
-            if(!keyword){
-
-                render(stations);
-
-                return;
-            }
+        playButton.textContent =
+            "▶";
+    }
+);
 
 
-            const result =
-                stations.filter(
-                    function(station){
+audio.addEventListener(
+    "waiting",
+    () => {
 
-                        const text = [
-                            station.name,
-                            station.category,
-                            station.description
-                        ]
-                        .join(" ")
-                        .toLowerCase();
+        if (currentStation) {
 
-                        return (
-                            text.indexOf(
-                                keyword
-                            ) !== -1
-                        );
-
-                    }
-                );
-
-
-            render(result);
-
+            playerStatus.textContent =
+                "正在缓冲...";
         }
-    );
+    }
+);
 
 
-    loadStations();
+audio.addEventListener(
+    "stalled",
+    () => {
+
+        if (currentStation) {
+
+            playerStatus.textContent =
+                "网络缓冲中...";
+        }
+    }
+);
 
 
-    /*
-     * 每 30 秒自动检查一次 GitHub 配置。
-     */
-    setInterval(
-        loadStations,
-        30000
-    );
+audio.addEventListener(
+    "error",
+    () => {
 
-})();
+        if (
+            currentStation &&
+            audio.error
+        ) {
+
+            playerStatus.textContent =
+                "音频播放失败";
+        }
+    }
+);
+
+
+/*
+ * ============================================================
+ * Search
+ * ============================================================
+ */
+
+searchInput.addEventListener(
+    "input",
+    renderStations
+);
+
+
+/*
+ * ============================================================
+ * Initial
+ * ============================================================
+ */
+
+loadStations();
+
+
+/*
+ * ============================================================
+ * Refresh config every 30 seconds
+ * ============================================================
+ */
+
+setInterval(
+    loadStations,
+    30000
+);
+
 </script>
 
 </body>
+
 </html>
