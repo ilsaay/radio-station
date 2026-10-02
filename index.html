@@ -4,131 +4,185 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#0f0f0f">
-<meta name="referrer" content="no-referrer">
 <title>在线广播</title>
 <style>
-:root{--bg:#0f0f0f;--panel:#181818;--panel2:#232323;--line:#2b2b2b;--text:#fff;--muted:#aaa;--soft:#707070;--red:#ff0033;--bar:90px}
-*{box-sizing:border-box}html,body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif}body{padding-bottom:var(--bar)}button,input{font:inherit}button{border:0;cursor:pointer;color:inherit}svg{display:block}.topbar{height:64px;position:fixed;z-index:100;left:0;right:0;top:0;display:flex;align-items:center;padding:0 24px;background:rgba(15,15,15,.96);border-bottom:1px solid #262626;backdrop-filter:blur(18px)}.logo{width:220px;color:#fff;text-decoration:none;display:flex;align-items:center;gap:11px;font-weight:800;font-size:19px}.logo-mark{width:34px;height:34px;border-radius:10px;background:var(--red);display:grid;place-items:center}.logo-mark svg{width:19px;height:19px;fill:#fff}.search{position:relative;flex:1;max-width:650px;margin:auto}.search input{width:100%;height:42px;border-radius:22px;border:1px solid #303030;background:#1f1f1f;color:#fff;outline:0;padding:0 18px 0 46px}.search input:focus{border-color:#555;background:#242424}.search svg{position:absolute;left:16px;top:12px;width:18px;color:#aaa}.actions{width:220px;display:flex;justify-content:flex-end;gap:7px}.circle{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;background:none;color:#aaa}.circle:hover{background:#272727;color:#fff}.circle svg{width:20px;height:20px}.layout{display:flex;padding-top:64px}.sidebar{position:fixed;top:64px;bottom:90px;width:220px;padding:20px 12px;border-right:1px solid #262626;overflow:auto}.side-title{padding:13px 12px 8px;color:#666;font-size:11px;letter-spacing:.13em;text-transform:uppercase}.nav{width:100%;display:flex;align-items:center;gap:13px;padding:11px 13px;margin:2px 0;border-radius:9px;background:transparent;color:#aaa;text-align:left;font-size:14px}.nav:hover,.nav.active{background:#252525;color:#fff}.nav.active{font-weight:700}.nav svg{width:19px;height:19px;flex:0 0 auto}.main{margin-left:220px;width:calc(100% - 220px);max-width:1600px;padding:30px 36px 120px}.hero{min-height:300px;border-radius:20px;overflow:hidden;position:relative;display:flex;align-items:flex-end;padding:38px;background:radial-gradient(circle at 80% 12%,rgba(255,0,51,.34),transparent 35%),linear-gradient(135deg,#292929,#171717 60%,#101010);margin-bottom:35px}.hero:before{content:"";position:absolute;width:530px;height:530px;right:-230px;bottom:-340px;border-radius:50%;border:80px solid rgba(255,255,255,.025)}.hero-content{position:relative;z-index:2;max-width:760px}.label{font-size:12px;font-weight:800;letter-spacing:.18em;color:#ff2a52}.hero h1{margin:12px 0;font-size:45px;line-height:1.06;letter-spacing:-.045em}.hero p{margin:0;color:#aaa;line-height:1.7;max-width:690px;font-size:14px}.hero-play{margin-top:24px;border-radius:23px;padding:11px 20px;background:#fff;color:#111;display:inline-flex;align-items:center;gap:9px;font-weight:800}.section{margin-top:33px}.section-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:17px}.section-head h2{margin:0;font-size:21px}.section-head span{font-size:12px;color:#707070}.chips{display:flex;gap:9px;overflow:auto;scrollbar-width:none;padding-bottom:4px}.chips::-webkit-scrollbar{display:none}.chip{padding:8px 15px;border-radius:20px;border:1px solid #303030;background:#171717;color:#aaa;white-space:nowrap;font-size:13px}.chip:hover{background:#242424;color:#fff}.chip.active{background:#fff;color:#111;border-color:#fff}.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:23px 18px;margin-top:18px}.card{cursor:pointer;min-width:0}.cover{position:relative;aspect-ratio:1;overflow:hidden;border-radius:14px;background:#191919;box-shadow:0 10px 30px rgba(0,0,0,.24)}.cover img{width:100%;height:100%;object-fit:cover}.default-cover{width:100%;height:100%;display:grid;place-items:center;background:radial-gradient(circle at 30% 20%,#555,transparent 35%),linear-gradient(135deg,#333,#101010)}.default-cover svg{width:55px;height:55px;color:#ddd}.cover:after{content:"";position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.64),transparent 52%);pointer-events:none}.live{position:absolute;z-index:2;left:10px;top:10px;padding:4px 7px;border-radius:5px;background:var(--red);font-size:9px;font-weight:900;letter-spacing:.08em}.play-card{position:absolute;z-index:4;right:10px;bottom:10px;width:44px;height:44px;border-radius:50%;background:#fff;color:#111;display:grid;place-items:center;opacity:0;transform:translateY(6px);transition:.18s;box-shadow:0 8px 25px rgba(0,0,0,.4)}.card:hover .play-card,.card.playing .play-card{opacity:1;transform:none}.play-card svg{width:20px;height:20px;fill:currentColor}.info{padding:10px 3px}.title{font-size:14px;font-weight:750;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.sub{font-size:12px;color:#777;margin-top:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.empty{grid-column:1/-1;padding:70px 20px;text-align:center;color:#666;border:1px dashed #333;border-radius:16px}.player{position:fixed;z-index:200;left:0;right:0;bottom:0;height:90px;display:grid;grid-template-columns:minmax(250px,1fr) auto minmax(250px,1fr);align-items:center;gap:24px;padding:0 25px;background:rgba(20,20,20,.98);border-top:1px solid #303030;backdrop-filter:blur(20px)}.now{display:flex;align-items:center;gap:12px;min-width:0}.now-cover{width:58px;height:58px;border-radius:9px;overflow:hidden;flex:0 0 auto;background:#292929;display:grid;place-items:center}.now-cover img{width:100%;height:100%;object-fit:cover}.now-cover svg{width:25px;height:25px}.now-info{min-width:0}.now-name{font-size:13px;font-weight:750;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.now-sub{font-size:11px;color:#777;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.fav{width:34px;height:34px;border-radius:50%;background:none;color:#777;display:grid;place-items:center;flex:0 0 auto}.fav:hover{color:#fff}.fav.active{color:#ff1744}.fav svg{width:18px;height:18px}.controls{display:flex;align-items:center;gap:8px}.ctrl{width:38px;height:38px;border-radius:50%;background:none;color:#ccc;display:grid;place-items:center}.ctrl:hover{background:#282828;color:#fff}.ctrl svg{width:19px;height:19px;fill:currentColor}.ctrl.main{width:49px;height:49px;background:#fff;color:#111}.ctrl.main svg{width:22px;height:22px}.right{display:flex;justify-content:flex-end;align-items:center;gap:12px}.status{max-width:210px;padding:5px 9px;border:1px solid #333;border-radius:12px;color:#777;font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.volume{display:flex;align-items:center;gap:8px;color:#aaa}.volume svg{width:18px;height:18px}.volume input{width:105px;accent-color:#fff}@media(max-width:1000px){.logo{width:auto}.logo>span:last-child{display:none}.actions{width:auto}.sidebar{display:none}.main{margin-left:0;width:100%;padding:25px 20px 110px}.player{grid-template-columns:1fr auto;height:78px;padding:0 14px}.right{display:none}.now-cover{width:50px;height:50px}}@media(max-width:600px){.topbar{padding:0 12px;gap:10px}.actions .circle:first-child{display:none}.hero{min-height:275px;padding:25px}.hero h1{font-size:32px}.main{padding:20px 13px 105px}.grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:16px 12px}.play-card{opacity:1;transform:none;width:38px;height:38px}.controls{gap:1px}.ctrl.prev,.ctrl.next{display:none}.fav{display:none}}
+:root{--bg:#0f0f0f;--card:#191919;--line:#2a2a2a;--text:#fff;--muted:#888;--red:#ff0033}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,"Segoe UI",Arial,sans-serif}
+body{padding:0 0 96px}
+header{padding:28px 24px 12px;max-width:1100px;margin:0 auto}
+header h1{margin:0;font-size:24px;letter-spacing:-.02em}
+header p{margin:8px 0 0;color:var(--muted);font-size:13px}
+main{max-width:1100px;margin:0 auto;padding:12px 24px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:18px}
+.card{cursor:pointer;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;transition:.15s}
+.card:hover{border-color:#3a3a3a}
+.card.playing{border-color:var(--red)}
+.card .name{font-size:14px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.card .sub{font-size:12px;color:var(--muted);margin-top:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-height:16px}
+.status-bar{max-width:1100px;margin:16px auto 0;padding:0 24px;color:var(--muted);font-size:12px}
+.empty{padding:60px 20px;text-align:center;color:#666;border:1px dashed #333;border-radius:14px}
+.bar{position:fixed;left:0;right:0;bottom:0;height:80px;background:rgba(18,18,18,.98);border-top:1px solid var(--line);backdrop-filter:blur(16px);display:flex;align-items:center;padding:0 22px;gap:16px}
+.bar .info{flex:1;min-width:0}
+.bar .title{font-size:14px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bar .sub{font-size:12px;color:var(--muted);margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bar button{width:52px;height:52px;border-radius:50%;border:0;background:#fff;color:#111;display:grid;place-items:center;cursor:pointer;flex:0 0 auto}
+.bar button:disabled{opacity:.35;cursor:default}
+.bar button svg{width:22px;height:22px;fill:currentColor}
+@media(max-width:600px){header{padding:20px 16px 8px}main{padding:8px 16px}.status-bar{padding:0 16px}.grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}}
 </style>
 </head>
 <body>
-<header class="topbar">
-<a class="logo" href="#"><span class="logo-mark"><svg viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 9 9h-3a6 6 0 1 1-6-6V3Z"/><path d="M12 7a5 5 0 1 1-5 5h3a2 2 0 1 0 2-2V7Z"/></svg></span><span id="brand">在线广播</span></a>
-<div class="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg><input id="search" placeholder="搜索电台、音乐、分类…"></div>
-<div class="actions"><button class="circle" id="refresh" title="刷新配置"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 11a8 8 0 0 0-15-4"/><path d="M4 4v5h5"/><path d="M4 13a8 8 0 0 0 15 4"/><path d="M20 20v-5h-5"/></svg></button><button class="circle" id="favTop" title="收藏"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.8 8.8c0 5.5-8.8 11-8.8 11S3.2 14.3 3.2 8.8A4.8 4.8 0 0 1 12 6.1a4.8 4.8 0 0 1 8.8 2.7Z"/></svg></button></div>
+<header>
+  <h1 id="siteName">在线广播</h1>
+  <p id="siteDesc"></p>
 </header>
-<div class="layout">
-<aside class="sidebar"><div class="side-title">浏览</div><button class="nav active" id="navAll"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m4 10 8-7 8 7"/><path d="M6 9v10h12V9"/><path d="M10 19v-6h4v6"/></svg>全部电台</button><button class="nav" id="navFav"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.8 8.8c0 5.5-8.8 11-8.8 11S3.2 14.3 3.2 8.8A4.8 4.8 0 0 1 12 6.1a4.8 4.8 0 0 1 8.8 2.7Z"/></svg>我的收藏</button><div class="side-title">分类</div><div id="sideCats"></div></aside>
-<main class="main">
-<section class="hero"><div class="hero-content"><div class="label">LIVE RADIO</div><h1 id="heroTitle">随时随地，开始收听。</h1><p id="heroDesc">从音乐、新闻到网络广播，把你喜欢的声音集中到一个简单的播放器里。</p><button class="hero-play" id="heroPlay"><svg width="17" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>开始播放</button></div></section>
-<section class="section"><div class="section-head"><h2>浏览电台</h2><span id="count">0 个频道</span></div><div class="chips" id="chips"></div><div class="grid" id="grid"></div></section>
-</main></div>
-<div class="player"><div class="now"><div class="now-cover" id="nowCover"></div><div class="now-info"><div class="now-name" id="nowName">未选择电台</div><div class="now-sub" id="nowSub">选择一个频道开始播放</div></div><button class="fav" id="favBtn" title="收藏"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.8 8.8c0 5.5-8.8 11-8.8 11S3.2 14.3 3.2 8.8A4.8 4.8 0 0 1 12 6.1a4.8 4.8 0 0 1 8.8 2.7Z"/></svg></button></div><div class="controls"><button class="ctrl prev" id="prev"><svg viewBox="0 0 24 24"><path d="M6 5h2v14H6zM20 6v12l-9-6z"/></svg></button><button class="ctrl main" id="play"><svg id="playIcon" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></button><button class="ctrl next" id="next"><svg viewBox="0 0 24 24"><path d="M16 5h2v14h-2zM4 6v12l9-6z"/></svg></button></div><div class="right"><span class="status" id="status">就绪</span><div class="volume"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 10v4h4l5 4V6l-5 4H4Z"/><path d="M17 9a4 4 0 0 1 0 6"/></svg><input id="volume" type="range" min="0" max="1" value=".8" step=".01"></div></div></div>
-<audio id="audio" playsinline preload="none"></audio>
+<main>
+  <div class="grid" id="grid"></div>
+</main>
+<div class="status-bar" id="status">加载中…</div>
+<div class="bar">
+  <div class="info">
+    <div class="title" id="nowName">未选择电台</div>
+    <div class="sub" id="nowSub">点击上方卡片开始播放</div>
+  </div>
+  <button id="playBtn" disabled>
+    <svg id="playIcon" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+  </button>
+</div>
+<audio id="audio" preload="none"></audio>
 <script src="https://cdn.jsdelivr.net/npm/hls.js@1.7.3/dist/hls.min.js"></script>
 <script>
-const $=id=>document.getElementById(id);
-const audio=$('audio');
-const state={stations:[],filtered:[],category:'全部',current:null,hls:null,hlsUrl:'',hlsRetryTimer:null,favorites:new Set(JSON.parse(localStorage.getItem('radio-favorites')||'[]'))};
-function esc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
-function sid(s){return s?.url||''}
-function setStatus(t){$('status').textContent=t}
-function saveFav(){localStorage.setItem('radio-favorites',JSON.stringify([...state.favorites]))}
-function cover(){return '<div class="default-cover"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="8"/><path d="M12 8v8M8 12h8"/></svg></div>'}
-function ximalayaURL(url){
-  try{
-    const u=new URL(url);
-    if(!/ximalaya\.com$|xmcdn\.com$/i.test(u.hostname)) return url;
-    if(!u.searchParams.has('transcode')) u.searchParams.set('transcode','ts');
-    return u.toString();
-  }catch{return url}
+const $ = id => document.getElementById(id);
+const audio = $('audio');
+const state = { stations: [], current: null, hls: null };
+
+const setStatus = t => { $('status').textContent = t; };
+
+function proxied(url) {
+  return location.origin + '/proxy?url=' + encodeURIComponent(url);
 }
-// 不做任何代理，直接返回原始地址候选
-function urlCandidates(url){
-  const out=[]; const add=u=>{if(u&&!out.includes(u))out.push(u)};
-  add(ximalayaURL(url)); add(url);
-  return out;
+
+function playIcon(playing) {
+  $('playIcon').innerHTML = playing
+    ? '<path d="M7 5h3v14H7zm7 0h3v14h-3z"/>'
+    : '<path d="M8 5v14l11-7z"/>';
 }
-async function loadConfig(){
+
+async function loadConfig() {
   setStatus('加载配置…');
-  try{
-    const r=await fetch('/api/stations?t='+Date.now(),{cache:'no-store'});
-    if(!r.ok)throw Error('配置 HTTP '+r.status);
-    const data=await r.json();
-    state.stations=Array.isArray(data.stations)?data.stations.filter(s=>s.url):[];
-    if(data.site){$('brand').textContent=data.site.name||'在线广播';$('heroTitle').textContent=data.site.title||'随时随地，开始收听。';$('heroDesc').textContent=data.site.description||'';document.title=data.site.name||'在线广播'}
-    renderCategories();render();setStatus('就绪');
-  }catch(e){console.error(e);$('grid').innerHTML='<div class="empty">无法读取广播配置，请检查 Cloudflare Worker 与 GitHub config.ini。</div>';setStatus('配置错误')}
-}
-function renderCategories(){
-  const cats=['全部',...new Set(state.stations.map(s=>s.category).filter(Boolean))];
-  $('chips').innerHTML=cats.map(c=>`<button class="chip ${c===state.category?'active':''}" onclick="setCategory(${JSON.stringify(c)})">${esc(c)}</button>`).join('');
-  $('sideCats').innerHTML=cats.filter(c=>c!=='全部').map(c=>`<button class="nav" onclick="setCategory(${JSON.stringify(c)})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="8"/><path d="M12 8v8M8 12h8"/></svg>${esc(c)}</button>`).join('');
-}
-function setCategory(c){state.category=c;renderCategories();render()}
-window.setCategory=setCategory;
-function render(){
-  const q=$('search').value.trim().toLowerCase();
-  state.filtered=state.stations.filter(s=>{const text=[s.name,s.category,s.description].join(' ').toLowerCase();const cat=state.category==='全部'||(state.category==='收藏'&&state.favorites.has(sid(s)))||s.category===state.category;return cat&&(!q||text.includes(q))});
-  $('count').textContent=state.filtered.length+' 个频道';
-  if(!state.filtered.length){$('grid').innerHTML='<div class="empty">没有找到匹配的电台。</div>';return}
-  $('grid').innerHTML=state.filtered.map(s=>{const playing=state.current&&sid(state.current)===sid(s)&&!audio.paused;const cv=s.cover?`<img src="${esc(s.cover)}" alt="" loading="lazy" onerror="this.style.display='none'">`:cover();const pi=playing?'M7 5h3v14H7zm7 0h3v14h-3z':'M8 5v14l11-7z';return `<article class="card ${playing?'playing':''}" data-url="${esc(s.url)}" onclick="playByUrl(${JSON.stringify(s.url)})"><div class="cover">${cv}<span class="live">LIVE</span><button class="play-card" onclick="event.stopPropagation();playByUrl(${JSON.stringify(s.url)})"><svg viewBox="0 0 24 24"><path d="${pi}"/></svg></button></div><div class="info"><div class="title">${esc(s.name)}</div><div class="sub">${esc(s.category||'网络广播')}${s.description?' · '+esc(s.description):''}</div></div></article>`}).join('');
-}
-window.playByUrl=url=>{const s=state.stations.find(x=>x.url===url);if(s)playStation(s)};
-function updateUI(){
-  const s=state.current;
-  $('nowName').textContent=s?s.name:'未选择电台';
-  $('nowSub').textContent=s?(s.description||s.category||'LIVE RADIO'):'选择一个频道开始播放';
-  $('nowCover').innerHTML=s&&s.cover?`<img src="${esc(s.cover)}" alt="">`:cover();
-  $('favBtn').classList.toggle('active',!!s&&state.favorites.has(sid(s)));
-}
-function updateIcon(){$('playIcon').innerHTML=audio.paused?'<path d="M8 5v14l11-7z"/>':'<path d="M7 5h3v14H7zm7 0h3v14h-3z"/>';render()}
-function destroyHls(){if(state.hls){try{state.hls.destroy()}catch{}state.hls=null}}
-function clearRetry(){if(state.hlsRetryTimer){clearTimeout(state.hlsRetryTimer);state.hlsRetryTimer=null}}
-function nudgeLive(){try{if(audio.buffered.length){const end=audio.buffered.end(audio.buffered.length-1);if(isFinite(end)&&isFinite(audio.currentTime)&&end-audio.currentTime>.8)audio.currentTime=Math.max(0,end-.25)}}catch{}}
-async function startAudio(){try{await audio.play();setStatus('LIVE');updateIcon()}catch{setStatus('点击播放按钮开始');updateIcon()}}
-async function loadHlsWithCandidates(candidates,index=0){
-  if(index>=candidates.length){setStatus('M3U8 无法播放（可能被 CORS 拦截）');return}
-  const url=candidates[index]; destroyHls(); clearRetry(); state.hlsUrl=url;
-  setStatus(index?'切换兼容地址…':'连接 M3U8…');
-  if(window.Hls&&Hls.isSupported()){
-    const h=new Hls({enableWorker:true,lowLatencyMode:false,backBufferLength:0,maxBufferLength:30,liveSyncDurationCount:3,manifestLoadingMaxRetry:1,manifestLoadingRetryDelay:800,levelLoadingMaxRetry:2,levelLoadingRetryDelay:1000,fragLoadingMaxRetry:2,fragLoadingRetryDelay:1000});
-    state.hls=h;
-    let gotManifest=false;
-    h.on(Hls.Events.MANIFEST_PARSED,()=>{gotManifest=true;setStatus('已找到直播流，启动播放…');startAudio()});
-    h.on(Hls.Events.FRAG_BUFFERED,()=>{if(!audio.paused)setStatus('LIVE')});
-    h.on(Hls.Events.ERROR,(_,d)=>{
-      console.warn('HLS error',d);
-      if(!d.fatal){if(d.details==='bufferStalledError'){nudgeLive();}return}
-      if(d.type===Hls.ErrorTypes.NETWORK_ERROR){
-        setStatus('网络异常（可能 CORS），尝试下一个地址…');setTimeout(()=>loadHlsWithCandidates(candidates,index+1),400);return;
-      }
-      if(d.type===Hls.ErrorTypes.MEDIA_ERROR){
-        setStatus('恢复媒体…');try{h.recoverMediaError()}catch{setTimeout(()=>loadHlsWithCandidates(candidates,index+1),500)}return;
-      }
-      if(index+1<candidates.length){setStatus('当前地址失败，尝试兼容地址…');setTimeout(()=>loadHlsWithCandidates(candidates,index+1),400)}else setStatus('无法播放：源站可能不允许跨域，请改用支持 CORS 的电台地址');
-    });
-    h.loadSource(url);h.attachMedia(audio);return;
+  try {
+    const r = await fetch('/api/stations?t=' + Date.now(), { cache: 'no-store' });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const data = await r.json();
+    state.stations = (data.stations || []).filter(s => s.url);
+    if (data.site) {
+      if (data.site.name) { $('siteName').textContent = data.site.name; document.title = data.site.name; }
+      if (data.site.description) $('siteDesc').textContent = data.site.description;
+    }
+    render();
+    setStatus(state.stations.length ? '就绪' : '配置里没有可用电台');
+  } catch (e) {
+    $('grid').innerHTML = '<div class="empty">读取配置失败：' + e.message + '</div>';
+    setStatus('配置错误');
   }
-  if(audio.canPlayType('application/vnd.apple.mpegurl')){audio.src=url;await startAudio();return}
-  setStatus('此浏览器不支持 HLS');
 }
-async function playStation(s){
-  if(!s)return; state.current=s;updateUI();render();destroyHls();clearRetry();audio.pause();audio.removeAttribute('src');audio.load();
-  const url=String(s.url).trim();const isHls=(String(s.type||'').toLowerCase()==='m3u8'||/\.m3u8(?:\?|$)/i.test(url));
-  try{
-    if(isHls){await loadHlsWithCandidates(urlCandidates(url));return}
-    audio.src=url;setStatus('连接音频…');await startAudio();
-  }catch(e){console.error(e);setStatus('播放失败')}
+
+function render() {
+  if (!state.stations.length) {
+    $('grid').innerHTML = '<div class="empty">没有电台</div>';
+    return;
+  }
+  $('grid').innerHTML = state.stations.map((s, i) => {
+    const playing = state.current === s && !audio.paused;
+    return `<div class="card ${playing ? 'playing' : ''}" data-i="${i}">
+      <div class="name">${esc(s.name)}</div>
+      <div class="sub">${esc(s.category || s.description || '')}</div>
+    </div>`;
+  }).join('');
+  for (const el of $('grid').querySelectorAll('.card')) {
+    el.onclick = () => playStation(state.stations[+el.dataset.i]);
+  }
 }
-function changeStation(dir){if(!state.filtered.length)return;let i=state.filtered.findIndex(s=>state.current&&sid(s)===sid(state.current));if(i<0)i=dir>0?0:state.filtered.length-1;else i=(i+dir+state.filtered.length)%state.filtered.length;playStation(state.filtered[i])}
-$('play').onclick=()=>{if(!state.current){if(state.filtered[0])playStation(state.filtered[0]);return}audio.paused?startAudio():audio.pause()};
-$('heroPlay').onclick=()=>state.current?startAudio():(state.stations[0]&&playStation(state.stations[0]));
-$('prev').onclick=()=>changeStation(-1);$('next').onclick=()=>changeStation(1);$('search').oninput=render;$('refresh').onclick=loadConfig;$('volume').oninput=e=>audio.volume=+e.target.value;audio.volume=.8;
-audio.addEventListener('playing',()=>{setStatus('LIVE');updateIcon()});audio.addEventListener('play',updateIcon);audio.addEventListener('pause',()=>{if(state.current)setStatus('已暂停');updateIcon()});audio.addEventListener('waiting',()=>{if(state.current)setStatus('缓冲中…')});audio.addEventListener('stalled',()=>{if(state.current){setStatus('流暂时停顿，恢复中…');nudgeLive()}});audio.addEventListener('error',()=>{if(state.current)setStatus('源站播放错误')});
-$('favBtn').onclick=()=>{if(!state.current)return;const id=sid(state.current);state.favorites.has(id)?state.favorites.delete(id):state.favorites.add(id);saveFav();updateUI();render()};
-function favorites(){state.category=state.category==='收藏'?'全部':'收藏';renderCategories();render()}$('favTop').onclick=favorites;$('navFav').onclick=favorites;$('navAll').onclick=()=>{state.category='全部';renderCategories();render()};
-document.addEventListener('keydown',e=>{if(e.target.tagName==='INPUT')return;if(e.code==='Space'){e.preventDefault();$('play').click()}if(e.key==='ArrowLeft')changeStation(-1);if(e.key==='ArrowRight')changeStation(1)});
+
+function esc(v) {
+  return String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+function destroyHls() {
+  if (state.hls) { try { state.hls.destroy(); } catch {} state.hls = null; }
+}
+
+function setNow(s) {
+  $('nowName').textContent = s ? s.name : '未选择电台';
+  $('nowSub').textContent = s ? (s.description || s.category || 'LIVE') : '点击上方卡片开始播放';
+  $('playBtn').disabled = !s;
+}
+
+async function tryPlay() {
+  try { await audio.play(); setStatus('播放中'); playIcon(true); render(); }
+  catch { setStatus('点击播放按钮开始'); playIcon(false); }
+}
+
+function isHls(s) {
+  return (s.type || '').toLowerCase() === 'm3u8' || /\.m3u8(\?|$)/i.test(s.url);
+}
+
+function playStation(s) {
+  if (!s) return;
+  state.current = s;
+  destroyHls();
+  audio.pause();
+  audio.removeAttribute('src');
+  audio.load();
+  setNow(s);
+  render();
+
+  const src = proxied(s.url);
+  setStatus('连接中…');
+
+  if (isHls(s)) {
+    if (window.Hls && Hls.isSupported()) {
+      const hls = new Hls({ enableWorker: true, lowLatencyMode: false });
+      state.hls = hls;
+      hls.on(Hls.Events.MANIFEST_PARSED, () => tryPlay());
+      hls.on(Hls.Events.ERROR, (_, d) => {
+        if (!d.fatal) return;
+        if (d.type === Hls.ErrorTypes.NETWORK_ERROR) {
+          setStatus('网络错误：' + d.details);
+          hls.destroy(); state.hls = null;
+        } else if (d.type === Hls.ErrorTypes.MEDIA_ERROR) {
+          setStatus('媒体错误，尝试恢复…');
+          hls.recoverMediaError();
+        } else {
+          setStatus('播放失败：' + d.details);
+          hls.destroy(); state.hls = null;
+        }
+      });
+      hls.loadSource(src);
+      hls.attachMedia(audio);
+    } else if (audio.canPlayType('application/vnd.apple.mpegurl')) {
+      audio.src = src;
+      audio.onloadedmetadata = () => tryPlay();
+    } else {
+      setStatus('浏览器不支持 HLS');
+    }
+  } else {
+    audio.src = src;
+    audio.onloadedmetadata = () => tryPlay();
+  }
+}
+
+$('playBtn').onclick = () => {
+  if (!state.current) return;
+  if (audio.paused) tryPlay(); else audio.pause();
+};
+
+audio.addEventListener('playing', () => { setStatus('播放中'); playIcon(true); render(); });
+audio.addEventListener('pause', () => { playIcon(false); render(); });
+audio.addEventListener('waiting', () => setStatus('缓冲中…'));
+audio.addEventListener('error', () => setStatus('播放出错'));
+
 loadConfig();
 </script>
 </body>
