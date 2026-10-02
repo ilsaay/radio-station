@@ -1,33 +1,94 @@
 /*
  * ============================================================
- * Cloudflare Pages 广播站 Worker
+ * Cloudflare Pages Radio Station Worker
  * ============================================================
  *
- * GitHub config.ini
- *       ↓
- * Cloudflare Worker
- *       ↓
- * /api/stations
- *       ↓
- * index.html
+ * GitHub:
+ * https://github.com/ilsaay/radio-station
  *
- * 零第三方依赖
+ * Files:
+ *   index.html
+ *   config.ini
+ *   _worker.js
+ *
+ * No npm
+ * No package.json
+ * No third-party backend
+ *
  * ============================================================
  */
 
 const GITHUB_CONFIG_URL =
     "https://raw.githubusercontent.com/ilsaay/radio-station/main/config.ini";
 
-const CACHE_TTL = 30 * 1000;
-const FETCH_TIMEOUT = 8000;
+const CONFIG_CACHE_TTL = 30 * 1000;
 
-let memoryCache = null;
-let memoryCacheTime = 0;
+const FETCH_TIMEOUT = 10000;
+
+
+/*
+ * 最近一次正常配置
+ */
+
+let memoryConfig = null;
+let memoryConfigTime = 0;
 
 
 /*
  * ============================================================
- * INI 解析
+ * CORS
+ * ============================================================
+ */
+
+function corsHeaders() {
+
+    return {
+        "Access-Control-Allow-Origin": "*",
+
+        "Access-Control-Allow-Methods":
+            "GET, HEAD, OPTIONS",
+
+        "Access-Control-Allow-Headers":
+            "*",
+
+        "Access-Control-Expose-Headers":
+            "Content-Length, Content-Range, Accept-Ranges, Content-Type"
+    };
+}
+
+
+/*
+ * ============================================================
+ * JSON
+ * ============================================================
+ */
+
+function json(data, status = 200) {
+
+    const headers = {
+
+        "Content-Type":
+            "application/json; charset=utf-8",
+
+        "Cache-Control":
+            "public, max-age=30, s-maxage=30",
+
+        ...corsHeaders()
+    };
+
+    return new Response(
+        JSON.stringify(data, null, 2),
+        {
+            status,
+            headers
+        }
+    );
+}
+
+
+/*
+ * ============================================================
+ * INI Parser
  * ============================================================
  */
 
@@ -40,13 +101,17 @@ function parseINI(text) {
     text = String(text || "")
         .replace(/^\uFEFF/, "");
 
-    const lines = text.split(/\r?\n/);
+    for (
+        const originalLine
+        of text.split(/\r?\n/)
+    ) {
 
-    for (const rawLine of lines) {
+        const line =
+            originalLine.trim();
 
-        let line = rawLine.trim();
-
-        if (!line) continue;
+        if (!line) {
+            continue;
+        }
 
         if (
             line.startsWith(";") ||
@@ -56,12 +121,16 @@ function parseINI(text) {
         }
 
         const sectionMatch =
-            line.match(/^\[([^\]]+)\]$/);
+            line.match(
+                /^\[([^\]]+)\]$/
+            );
 
         if (sectionMatch) {
 
             current = {
-                section: sectionMatch[1].trim()
+
+                section:
+                    sectionMatch[1].trim()
             };
 
             sections.push(current);
@@ -73,32 +142,42 @@ function parseINI(text) {
             continue;
         }
 
-        const position = line.indexOf("=");
+        const equals =
+            line.indexOf("=");
 
-        if (position <= 0) {
+        if (equals < 1) {
             continue;
         }
 
         const key =
-            line.slice(0, position).trim();
+            line
+                .slice(0, equals)
+                .trim();
 
         let value =
-            line.slice(position + 1).trim();
+            line
+                .slice(equals + 1)
+                .trim();
 
         if (
             value.length >= 2 &&
             (
                 (
-                    value.startsWith('"') &&
-                    value.endsWith('"')
+                    value[0] === '"' &&
+                    value[value.length - 1] === '"'
                 ) ||
                 (
-                    value.startsWith("'") &&
-                    value.endsWith("'")
+                    value[0] === "'" &&
+                    value[value.length - 1] === "'"
                 )
             )
         ) {
-            value = value.slice(1, -1);
+
+            value =
+                value.slice(
+                    1,
+                    -1
+                );
         }
 
         current[key] = value;
@@ -110,50 +189,50 @@ function parseINI(text) {
 
 /*
  * ============================================================
- * 构建配置
+ * Build radio configuration
  * ============================================================
  */
 
 function buildConfig(text) {
 
-    const sections = parseINI(text);
+    const sections =
+        parseINI(text);
+
 
     let siteSection = null;
 
     for (const section of sections) {
 
         if (
-            String(section.section).toLowerCase() ===
-            "site"
+            String(section.section)
+                .toLowerCase() === "site"
         ) {
+
             siteSection = section;
+
             break;
         }
     }
 
+
     const site = {
 
         name:
-            siteSection &&
-            siteSection.name
-                ? siteSection.name
-                : "广播电台",
+            siteSection?.name ||
+            "广播电台",
 
         title:
-            siteSection &&
-            siteSection.title
-                ? siteSection.title
-                : "在线广播",
+            siteSection?.title ||
+            "在线广播",
 
         description:
-            siteSection &&
-            siteSection.description
-                ? siteSection.description
-                : "收听你喜欢的网络电台"
+            siteSection?.description ||
+            "收听你喜欢的网络电台"
     };
 
 
     const stations = [];
+
 
     for (const section of sections) {
 
@@ -161,24 +240,46 @@ function buildConfig(text) {
             continue;
         }
 
+
         const url =
-            String(section.url).trim();
+            String(section.url)
+                .trim();
+
 
         if (
-            !url.startsWith("http://") &&
-            !url.startsWith("https://")
+            !/^https?:\/\//i.test(url)
         ) {
             continue;
         }
 
+
+        let type =
+            String(
+                section.type ||
+                ""
+            ).toLowerCase();
+
+
+        if (!type) {
+
+            if (
+                /\.m3u8(?:\?|$)/i.test(url)
+            ) {
+
+                type = "m3u8";
+
+            } else {
+
+                type = "mp3";
+            }
+        }
+
+
         stations.push({
 
             id:
-                String(
-                    section.id ||
-                    section.section ||
-                    stations.length + 1
-                ),
+                section.id ||
+                section.section,
 
             name:
                 section.name ||
@@ -186,11 +287,7 @@ function buildConfig(text) {
 
             url,
 
-            type:
-                String(
-                    section.type ||
-                    "mp3"
-                ).toLowerCase(),
+            type,
 
             category:
                 section.category ||
@@ -217,37 +314,84 @@ function buildConfig(text) {
 
 /*
  * ============================================================
- * GitHub 配置读取
+ * Fetch with timeout
  * ============================================================
  */
 
-async function fetchGitHubConfig() {
+async function fetchWithTimeout(
+    url,
+    options = {},
+    timeout = FETCH_TIMEOUT
+) {
 
     const controller =
         new AbortController();
 
+
     const timer =
         setTimeout(
             () => controller.abort(),
-            FETCH_TIMEOUT
+            timeout
         );
+
+
+    try {
+
+        return await fetch(
+            url,
+            {
+                ...options,
+                signal:
+                    controller.signal
+            }
+        );
+
+    } finally {
+
+        clearTimeout(timer);
+    }
+}
+
+
+/*
+ * ============================================================
+ * GitHub Config
+ * ============================================================
+ */
+
+async function getConfig() {
+
+    const now =
+        Date.now();
+
+
+    /*
+     * 内存缓存
+     */
+
+    if (
+        memoryConfig &&
+        now - memoryConfigTime <
+            CONFIG_CACHE_TTL
+    ) {
+
+        return memoryConfig;
+    }
+
 
     try {
 
         const response =
-            await fetch(
+            await fetchWithTimeout(
                 GITHUB_CONFIG_URL,
                 {
-                    method: "GET",
-
                     headers: {
-                        "Accept": "text/plain",
-                        "User-Agent":
-                            "Cloudflare-Radio-Station"
-                    },
+                        "Accept":
+                            "text/plain",
 
-                    signal:
-                        controller.signal,
+                        "User-Agent":
+                            "radio-station-cloudflare-worker"
+                    },
 
                     cf: {
                         cacheTtl: 30,
@@ -278,76 +422,30 @@ async function fetchGitHubConfig() {
         }
 
 
-        return text;
-
-    } finally {
-
-        clearTimeout(timer);
-    }
-}
-
-
-/*
- * ============================================================
- * 获取配置
- * ============================================================
- */
-
-async function getConfig() {
-
-    const now = Date.now();
-
-
-    /*
-     * Worker 内存缓存
-     */
-
-    if (
-        memoryCache &&
-        now - memoryCacheTime < CACHE_TTL
-    ) {
-        return memoryCache;
-    }
-
-
-    /*
-     * 从 GitHub 获取
-     */
-
-    try {
-
-        const text =
-            await fetchGitHubConfig();
-
-
         const config =
             buildConfig(text);
 
 
         /*
-         * 防止错误配置把正常配置覆盖掉
+         * 防止错误配置覆盖正常配置
          */
 
         if (
             config.stations.length === 0 &&
-            memoryCache &&
-            memoryCache.stations.length > 0
+            memoryConfig &&
+            memoryConfig.stations.length > 0
         ) {
 
-            memoryCacheTime = now;
+            memoryConfigTime = now;
 
-            return memoryCache;
+            return memoryConfig;
         }
 
 
-        /*
-         * 保存最近一次正常配置
-         */
-
-        memoryCache =
+        memoryConfig =
             config;
 
-        memoryCacheTime =
+        memoryConfigTime =
             now;
 
 
@@ -356,12 +454,13 @@ async function getConfig() {
     } catch (error) {
 
         /*
-         * GitHub 暂时不可用：
-         * 使用最近一次成功配置
+         * GitHub 暂时不可用时，
+         * 使用最近一次正常配置。
          */
 
-        if (memoryCache) {
-            return memoryCache;
+        if (memoryConfig) {
+
+            return memoryConfig;
         }
 
         throw error;
@@ -371,40 +470,384 @@ async function getConfig() {
 
 /*
  * ============================================================
- * JSON Response
+ * API /api/stations
  * ============================================================
  */
 
-function jsonResponse(
-    data,
-    status = 200
+async function stationsAPI() {
+
+    try {
+
+        const config =
+            await getConfig();
+
+
+        return json({
+
+            ok: true,
+
+            site:
+                config.site,
+
+            stations:
+                config.stations,
+
+            count:
+                config.stations.length,
+
+            generatedAt:
+                config.generatedAt
+
+        });
+
+    } catch (error) {
+
+        return json(
+            {
+                ok: false,
+
+                error:
+                    "无法读取电台配置",
+
+                detail:
+                    error?.message ||
+                    String(error)
+            },
+
+            503
+        );
+    }
+}
+
+
+/*
+ * ============================================================
+ * Allowed source URL
+ *
+ * 只允许来自 config.ini 的地址。
+ * 防止 /api/hls 被当成开放代理滥用。
+ * ============================================================
+ */
+
+async function isAllowedSource(
+    source
 ) {
 
+    try {
+
+        const config =
+            await getConfig();
+
+
+        for (
+            const station
+            of config.stations
+        ) {
+
+            if (
+                station.url === source
+            ) {
+
+                return true;
+            }
+        }
+
+
+        return false;
+
+    } catch {
+
+        return false;
+    }
+}
+
+
+/*
+ * ============================================================
+ * Resolve URL
+ * ============================================================
+ */
+
+function resolveURL(
+    base,
+    target
+) {
+
+    try {
+
+        return new URL(
+            target,
+            base
+        ).toString();
+
+    } catch {
+
+        return null;
+    }
+}
+
+
+/*
+ * ============================================================
+ * Rewrite M3U8
+ *
+ * 把：
+ *
+ *   segment.ts
+ *
+ * 变成：
+ *
+ *   /api/hls-segment?url=...
+ *
+ * ============================================================
+ */
+
+function rewriteM3U8(
+    text,
+    playlistURL
+) {
+
+    const lines =
+        text.split(/\r?\n/);
+
+
+    const output = [];
+
+
+    for (let i = 0; i < lines.length; i++) {
+
+        const line =
+            lines[i];
+
+
+        const trimmed =
+            line.trim();
+
+
+        /*
+         * 空行
+         */
+
+        if (!trimmed) {
+
+            output.push("");
+
+            continue;
+        }
+
+
+        /*
+         * M3U8 注释
+         */
+
+        if (
+            trimmed.startsWith("#")
+        ) {
+
+            /*
+             * EXT-X-KEY
+             *
+             * 如果 KEY 使用 URI，
+             * 也需要代理。
+             */
+
+            if (
+                /^#EXT-X-KEY:/i.test(trimmed)
+            ) {
+
+                const rewritten =
+                    rewriteURIAttribute(
+                        line,
+                        playlistURL
+                    );
+
+                output.push(
+                    rewritten
+                );
+
+            } else {
+
+                output.push(line);
+            }
+
+            continue;
+        }
+
+
+        /*
+         * 普通 URI
+         *
+         * 可能是：
+         *
+         * .ts
+         * .aac
+         * .m4s
+         * 子 M3U8
+         */
+
+        const absolute =
+            resolveURL(
+                playlistURL,
+                trimmed
+            );
+
+
+        if (!absolute) {
+
+            output.push(line);
+
+            continue;
+        }
+
+
+        const proxyURL =
+            "/api/hls-segment?url=" +
+            encodeURIComponent(
+                absolute
+            );
+
+
+        output.push(
+            proxyURL
+        );
+    }
+
+
+    return output.join("\n");
+}
+
+
+/*
+ * ============================================================
+ * Rewrite URI="..."
+ * ============================================================
+ */
+
+function rewriteURIAttribute(
+    line,
+    playlistURL
+) {
+
+    return line.replace(
+        /URI="([^"]+)"/gi,
+        (full, uri) => {
+
+            const absolute =
+                resolveURL(
+                    playlistURL,
+                    uri
+                );
+
+
+            if (!absolute) {
+                return full;
+            }
+
+
+            return (
+                'URI="/api/hls-segment?url=' +
+                encodeURIComponent(
+                    absolute
+                ) +
+                '"'
+            );
+        }
+    );
+}
+
+
+/*
+ * ============================================================
+ * HLS playlist
+ * ============================================================
+ */
+
+async function hlsPlaylist(
+    request,
+    source
+) {
+
+    const allowed =
+        await isAllowedSource(
+            source
+        );
+
+
+    if (!allowed) {
+
+        return json(
+            {
+                ok: false,
+                error:
+                    "该电台地址没有在 config.ini 中登记"
+            },
+            403
+        );
+    }
+
+
+    const response =
+        await fetchWithTimeout(
+            source,
+            {
+                headers: {
+
+                    "User-Agent":
+                        "Mozilla/5.0",
+
+                    "Accept":
+                        "*/*",
+
+                    "Referer":
+                        "https://www.ximalaya.com/"
+                }
+            }
+        );
+
+
+    if (!response.ok) {
+
+        return new Response(
+            "Upstream HTTP " +
+            response.status,
+            {
+                status: 502,
+
+                headers:
+                    corsHeaders()
+            }
+        );
+    }
+
+
+    const text =
+        await response.text();
+
+
+    const rewritten =
+        rewriteM3U8(
+            text,
+            source
+        );
+
+
     return new Response(
-        JSON.stringify(
-            data,
-            null,
-            2
-        ),
+        rewritten,
         {
-            status,
+            status: 200,
 
             headers: {
 
+                ...corsHeaders(),
+
                 "Content-Type":
-                    "application/json; charset=utf-8",
+                    "application/vnd.apple.mpegurl",
 
                 "Cache-Control":
-                    "public, max-age=30, s-maxage=30",
-
-                "Access-Control-Allow-Origin":
-                    "*",
-
-                "Access-Control-Allow-Methods":
-                    "GET, OPTIONS",
+                    "no-cache, no-store, must-revalidate",
 
                 "Access-Control-Allow-Headers":
-                    "Content-Type"
+                    "*"
             }
         }
     );
@@ -413,116 +856,242 @@ function jsonResponse(
 
 /*
  * ============================================================
- * API
+ * HLS segment / nested resource
  * ============================================================
  */
 
-async function handleAPI(request) {
+async function hlsSegment(
+    request,
+    source
+) {
 
-    const url =
-        new URL(request.url);
+    if (!source) {
 
-
-    /*
-     * CORS OPTIONS
-     */
-
-    if (
-        request.method === "OPTIONS"
-    ) {
-
-        return jsonResponse({
-            ok: true
-        });
+        return json(
+            {
+                ok: false,
+                error:
+                    "缺少 url"
+            },
+            400
+        );
     }
 
 
     /*
-     * /api/stations
+     * 只允许 config.ini 中登记的源站，
+     * 或由已登记 M3U8 解析出来的同源资源。
+     *
+     * 这里先检查 hostname。
      */
 
-    if (
-        url.pathname ===
-        "/api/stations"
+    let target;
+
+    try {
+
+        target =
+            new URL(source);
+
+    } catch {
+
+        return json(
+            {
+                ok: false,
+                error:
+                    "URL 无效"
+            },
+            400
+        );
+    }
+
+
+    const config =
+        await getConfig();
+
+
+    let sourceAllowed = false;
+
+
+    for (
+        const station
+        of config.stations
     ) {
-
-        if (
-            request.method !== "GET"
-        ) {
-
-            return jsonResponse(
-                {
-                    ok: false,
-                    error:
-                        "Method Not Allowed"
-                },
-                405
-            );
-        }
-
 
         try {
 
-            const config =
-                await getConfig();
+            const stationURL =
+                new URL(station.url);
 
 
-            return jsonResponse({
+            if (
+                stationURL.hostname ===
+                target.hostname
+            ) {
 
-                ok: true,
+                sourceAllowed = true;
 
-                site:
-                    config.site,
+                break;
+            }
 
-                stations:
-                    config.stations,
-
-                count:
-                    config.stations.length,
-
-                generatedAt:
-                    config.generatedAt
-            });
-
-
-        } catch (error) {
-
-            /*
-             * 这次特意把真实错误显示出来，
-             * 方便以后排查 GitHub / config.ini 问题。
-             */
-
-            return jsonResponse(
-                {
-                    ok: false,
-
-                    error:
-                        "无法读取 GitHub 中的 config.ini",
-
-                    detail:
-                        String(
-                            error &&
-                            error.message
-                                ? error.message
-                                : error
-                        ),
-
-                    github:
-                        GITHUB_CONFIG_URL
-                },
-                503
-            );
-        }
+        } catch {}
     }
 
 
-    return null;
+    if (!sourceAllowed) {
+
+        return json(
+            {
+                ok: false,
+                error:
+                    "该媒体源不在允许范围内"
+            },
+            403
+        );
+    }
+
+
+    const headers =
+        new Headers();
+
+
+    headers.set(
+        "User-Agent",
+        "Mozilla/5.0"
+    );
+
+
+    headers.set(
+        "Accept",
+        "*/*"
+    );
+
+
+    /*
+     * 支持音频 Range
+     */
+
+    const range =
+        request.headers.get(
+            "Range"
+        );
+
+
+    if (range) {
+
+        headers.set(
+            "Range",
+            range
+        );
+    }
+
+
+    const referer =
+        request.headers.get(
+            "Referer"
+        );
+
+
+    if (referer) {
+
+        headers.set(
+            "Referer",
+            referer
+        );
+    }
+
+
+    const response =
+        await fetchWithTimeout(
+            target.toString(),
+            {
+                headers
+            }
+        );
+
+
+    if (
+        !response.ok &&
+        response.status !== 206
+    ) {
+
+        return new Response(
+            "Upstream HTTP " +
+            response.status,
+            {
+                status: 502,
+
+                headers:
+                    corsHeaders()
+            }
+        );
+    }
+
+
+    const responseHeaders =
+        new Headers(
+            response.headers
+        );
+
+
+    /*
+     * CORS
+     */
+
+    const cors =
+        corsHeaders();
+
+
+    for (
+        const [key, value]
+        of Object.entries(cors)
+    ) {
+
+        responseHeaders.set(
+            key,
+            value
+        );
+    }
+
+
+    /*
+     * 不让浏览器缓存直播分片太久
+     */
+
+    responseHeaders.set(
+        "Cache-Control",
+        "no-cache"
+    );
+
+
+    /*
+     * 允许浏览器 Range
+     */
+
+    responseHeaders.set(
+        "Accept-Ranges",
+        "bytes"
+    );
+
+
+    return new Response(
+        response.body,
+        {
+            status:
+                response.status,
+
+            statusText:
+                response.statusText,
+
+            headers:
+                responseHeaders
+        }
+    );
 }
 
 
 /*
  * ============================================================
- * Cloudflare Pages Worker
+ * Main
  * ============================================================
  */
 
@@ -534,21 +1103,208 @@ export default {
         ctx
     ) {
 
+        const url =
+            new URL(
+                request.url
+            );
+
+
         /*
-         * API 优先
+         * OPTIONS
          */
 
-        const apiResponse =
-            await handleAPI(request);
+        if (
+            request.method ===
+            "OPTIONS"
+        ) {
 
+            return new Response(
+                null,
+                {
+                    status: 204,
 
-        if (apiResponse) {
-            return apiResponse;
+                    headers:
+                        corsHeaders()
+                }
+            );
         }
 
 
         /*
-         * 其它请求交给 Pages 静态资源
+         * API
+         */
+
+        if (
+            url.pathname ===
+            "/api/stations"
+        ) {
+
+            if (
+                request.method !==
+                "GET"
+            ) {
+
+                return json(
+                    {
+                        ok: false,
+                        error:
+                            "Method Not Allowed"
+                    },
+                    405
+                );
+            }
+
+
+            return stationsAPI();
+        }
+
+
+        /*
+         * M3U8
+         */
+
+        if (
+            url.pathname ===
+            "/api/hls"
+        ) {
+
+            if (
+                request.method !==
+                    "GET" &&
+                request.method !==
+                    "HEAD"
+            ) {
+
+                return json(
+                    {
+                        ok: false,
+                        error:
+                            "Method Not Allowed"
+                    },
+                    405
+                );
+            }
+
+
+            const source =
+                url.searchParams.get(
+                    "url"
+                );
+
+
+            if (!source) {
+
+                return json(
+                    {
+                        ok: false,
+                        error:
+                            "缺少 url"
+                    },
+                    400
+                );
+            }
+
+
+            try {
+
+                return await hlsPlaylist(
+                    request,
+                    source
+                );
+
+            } catch (error) {
+
+                return json(
+                    {
+                        ok: false,
+
+                        error:
+                            "HLS 获取失败",
+
+                        detail:
+                            error?.message ||
+                            String(error)
+                    },
+                    502
+                );
+            }
+        }
+
+
+        /*
+         * HLS 分片
+         */
+
+        if (
+            url.pathname ===
+            "/api/hls-segment"
+        ) {
+
+            if (
+                request.method !==
+                    "GET" &&
+                request.method !==
+                    "HEAD"
+            ) {
+
+                return json(
+                    {
+                        ok: false,
+                        error:
+                            "Method Not Allowed"
+                    },
+                    405
+                );
+            }
+
+
+            const source =
+                url.searchParams.get(
+                    "url"
+                );
+
+
+            if (!source) {
+
+                return json(
+                    {
+                        ok: false,
+                        error:
+                            "缺少 url"
+                    },
+                    400
+                );
+            }
+
+
+            try {
+
+                return await hlsSegment(
+                    request,
+                    source
+                );
+
+            } catch (error) {
+
+                return json(
+                    {
+                        ok: false,
+
+                        error:
+                            "媒体分片获取失败",
+
+                        detail:
+                            error?.message ||
+                            String(error)
+                    },
+                    502
+                );
+            }
+        }
+
+
+        /*
+         * Pages 静态文件
          */
 
         return env.ASSETS.fetch(
