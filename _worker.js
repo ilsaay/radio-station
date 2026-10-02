@@ -29,7 +29,7 @@
  */
 
 const GITHUB_CONFIG_URL =
-    "https://raw.githubusercontent.com/你的用户名/你的仓库/main/config.ini";
+    "https://raw.githubusercontent.com/ilsaay/radio-station/blob/main/config.ini";
 
 
 /*
