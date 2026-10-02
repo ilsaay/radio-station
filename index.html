@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<meta name="description" content="在线网络广播">
+<title>广播电台</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#f6f7f9;color:#222;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei",sans-serif}
+.header{height:64px;background:#fff;border-bottom:1px solid #eee;display:flex;align-items:center;padding:0 28px;position:sticky;top:0;z-index:10}
+.logo{font-size:22px;font-weight:700;color:#f04b23;margin-right:34px;white-space:nowrap}
+.nav{display:flex;gap:28px}.nav span{color:#666;cursor:pointer}.nav .active{color:#f04b23;font-weight:600}
+.search{margin-left:auto;width:260px;height:38px;background:#f5f5f5;border:0;border-radius:20px;padding:0 17px;outline:none;font-size:14px}
+.main{max-width:1180px;margin:24px auto;padding:0 20px 110px}
+.hero{background:linear-gradient(135deg,#fff1eb,#fff);border-radius:18px;padding:30px;min-height:155px;display:flex;align-items:center}
+.hero h1{margin:0 0 10px;font-size:30px}.hero p{margin:0;color:#888;font-size:14px}
+.message{margin-top:18px}.error{background:#fff0f0;color:#c33;padding:14px 16px;border-radius:10px;font-size:14px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:18px;margin-top:24px}
+.card{background:#fff;border:1px solid #eee;border-radius:15px;padding:18px;cursor:pointer;transition:.15s;min-height:145px}
+.card:hover{transform:translateY(-2px);box-shadow:0 8px 25px rgba(0,0,0,.06)}
+.cover{width:70px;height:70px;border-radius:12px;background:linear-gradient(135deg,#ff7043,#ffb29a);display:flex;align-items:center;justify-content:center;color:#fff;font-size:30px;float:left;margin-right:15px}
+.name{font-size:17px;font-weight:700;padding-top:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cat{font-size:12px;color:#f04b23;margin-top:9px}
+.desc{clear:both;color:#999;font-size:13px;padding-top:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.empty{text-align:center;color:#999;padding:60px 10px;grid-column:1/-1}
+.player{position:fixed;left:0;right:0;bottom:0;min-height:78px;background:#fff;border-top:1px solid #ddd;padding:12px 24px;display:flex;align-items:center;gap:16px;z-index:20}
+.play{width:48px;height:48px;border:0;border-radius:50%;background:#f04b23;color:#fff;font-size:20px;cursor:pointer;flex:none}
+.current{width:190px;min-width:120px;overflow:hidden}.current b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.current small{display:block;color:#999;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.audio{flex:1;min-width:100px}.status{font-size:12px;color:#999;white-space:nowrap}
+.loading{color:#999;text-align:center;padding:50px}
+@media(max-width:700px){
+.header{padding:0 14px}.nav{display:none}.search{width:160px}
+.main{padding:0 12px 110px}.hero{padding:23px}.hero h1{font-size:24px}
+.player{padding:10px 12px;gap:10px}.current{width:120px}.audio{max-width:40vw}
+}
+</style>
+</head>
+<body>
+
+<header class="header">
+<div class="logo" id="siteName">广播电台</div>
+<nav class="nav">
+<span class="active">推荐</span>
+<span>电台</span>
+<span>音乐</span>
+</nav>
+<input class="search" id="search" placeholder="搜索电台">
+</header>
+
+<main class="main">
+<section class="hero">
+<div>
+<h1 id="heroTitle">在线广播</h1>
+<p id="heroDescription">收听你喜欢的网络电台</p>
+</div>
+</section>
+
+<div class="message" id="message"></div>
+<section class="grid" id="grid">
+<div class="loading">正在读取电台配置…</div>
+</section>
+</main>
+
+<div class="player">
+<button class="play" id="play">▶</button>
+<div class="current">
+<b id="currentName">未选择电台</b>
+<small id="currentCategory">请选择一个电台</small>
+</div>
+<audio class="audio" id="audio" controls preload="none"></audio>
+<div class="status" id="status">就绪</div>
+</div>
+
+<script>
+(function(){
+
+"use strict";
+
+var audio=document.getElementById("audio");
+var grid=document.getElementById("grid");
+var message=document.getElementById("message");
+var search=document.getElementById("search");
+var play=document.getElementById("play");
+
+var stations=[];
+var current=null;
+
+function escapeText(value){
+    return String(value==null?"":value);
+}
+
+function parseINI(text){
+
+    var sections=[];
+    var currentSection=null;
+
+    text=text.replace(/^\uFEFF/,"");
+
+    var lines=text.split(/\r?\n/);
+
+    for(var i=0;i<lines.length;i++){
+
+        var line=lines[i].trim();
+
+        if(!line || line.charAt(0)===";" || line.charAt(0)==="#"){
+            continue;
+        }
+
+        var sectionMatch=line.match(/^\[([^\]]+)\]$/);
+
+        if(sectionMatch){
+            currentSection={
+                section:sectionMatch[1].trim()
+            };
+            sections.push(currentSection);
+            continue;
+        }
+
+        if(!currentSection){
+            continue;
+        }
+
+        var pos=line.indexOf("=");
+
+        if(pos<1){
+            continue;
+        }
+
+        var key=line.substring(0,pos).trim();
+        var value=line.substring(pos+1).trim();
+
+        if(
+            value.length>=2 &&
+            (
+                (value.charAt(0)==='"' && value.charAt(value.length-1)==='"') ||
+                (value.charAt(0)==="'" && value.charAt(value.length-1)==="'")
+            )
+        ){
+            value=value.substring(1,value.length-1);
+        }
+
+        currentSection[key]=value;
+    }
+
+    return sections;
+}
+
+function showError(text){
+    message.innerHTML="";
+    var box=document.createElement("div");
+    box.className="error";
+    box.textContent=text;
+    message.appendChild(box);
+}
+
+function render(list){
+
+    grid.innerHTML="";
+
+    if(!list.length){
+
+        var empty=document.createElement("div");
+        empty.className="empty";
+        empty.textContent="没有找到电台";
+        grid.appendChild(empty);
+        return;
+    }
+
+    for(var i=0;i<list.length;i++){
+
+        (function(station,index){
+
+            var card=document.createElement("article");
+            card.className="card";
+
+            var cover=document.createElement("div");
+            cover.className="cover";
+            cover.textContent="♪";
+
+            var name=document.createElement("div");
+            name.className="name";
+            name.textContent=station.name || ("电台 "+(index+1));
+
+            var category=document.createElement("div");
+            category.className="cat";
+            category.textContent=station.category || "网络电台";
+
+            var desc=document.createElement("div");
+            desc.className="desc";
+            desc.textContent=station.description || station.url;
+
+            card.appendChild(cover);
+            card.appendChild(name);
+            card.appendChild(category);
+            card.appendChild(desc);
+
+            card.onclick=function(){
+                playStation(station);
+            };
+
+            grid.appendChild(card);
+
+        })(list[i],i);
+    }
+}
+
+function playStation(station){
+
+    if(!station || !station.url){
+        return;
+    }
+
+    current=station;
+
+    document.getElementById("currentName").textContent=
+        station.name || "网络电台";
+
+    document.getElementById("currentCategory").textContent=
+        station.category || "网络电台";
+
+    document.getElementById("status").textContent="连接中…";
+
+    audio.src=station.url;
+
+    var result=audio.play();
+
+    if(result && result.catch){
+        result.catch(function(){
+            document.getElementById("status").textContent="请点击播放";
+        });
+    }
+}
+
+play.onclick=function(){
+
+    if(!current){
+        return;
+    }
+
+    if(audio.paused){
+
+        var result=audio.play();
+
+        if(result && result.catch){
+            result.catch(function(){
+                document.getElementById("status").textContent="播放失败";
+            });
+        }
+
+    }else{
+        audio.pause();
+    }
+};
+
+audio.onplay=function(){
+    play.textContent="Ⅱ";
+    document.getElementById("status").textContent="正在播放";
+};
+
+audio.onpause=function(){
+    play.textContent="▶";
+};
+
+audio.onerror=function(){
+    document.getElementById("status").textContent="播放失败";
+};
+
+function loadConfig(){
+
+    fetch("/api/stations?t="+Date.now(),{
+        cache:"no-store"
+    })
+    .then(function(response){
+
+        if(!response.ok){
+            throw new Error("HTTP "+response.status);
+        }
+
+        return response.json();
+
+    })
+    .then(function(data){
+
+        if(!data || !Array.isArray(data.stations)){
+            throw new Error("服务器返回的数据格式错误");
+        }
+
+        stations=data.stations;
+
+        if(data.site){
+
+            if(data.site.name){
+                document.getElementById("siteName").textContent=data.site.name;
+                document.title=data.site.name;
+            }
+
+            if(data.site.title){
+                document.getElementById("heroTitle").textContent=data.site.title;
+            }
+
+            if(data.site.description){
+                document.getElementById("heroDescription").textContent=data.site.description;
+            }
+        }
+
+        render(stations);
+
+        if(!stations.length){
+            showError("config.ini 中尚未配置电台。");
+        }else{
+            message.innerHTML="";
+        }
+
+    })
+    .catch(function(error){
+
+        grid.innerHTML="";
+
+        showError(
+            "无法读取电台配置："+error.message+
+            "。请稍后刷新页面。"
+        );
+    });
+}
+
+search.oninput=function(){
+
+    var keyword=search.value.trim().toLowerCase();
+
+    if(!keyword){
+        render(stations);
+        return;
+    }
+
+    var result=stations.filter(function(station){
+
+        var text=[
+            station.name,
+            station.category,
+            station.description
+        ].join(" ").toLowerCase();
+
+        return text.indexOf(keyword)!==-1;
+    });
+
+    render(result);
+};
+
+loadConfig();
+
+/*
+ * 每 30 秒重新读取一次配置。
+ * 因此修改 GitHub 的 config.ini 后，
+ * 网站无需修改 HTML。
+ */
+setInterval(loadConfig,30000);
+
+})();
+</script>
+
+</body>
+</html>
