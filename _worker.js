@@ -35,7 +35,7 @@ export default {
       }
     }
 
-    // 2. 高精度 NTP 时间同步接口（用于客户端校准时钟偏移）
+    // 2. NTP 时间同步接口
     if (url.pathname === '/api/time') {
       return new Response(JSON.stringify({ serverTime: Date.now() }), {
         headers: {
@@ -46,7 +46,7 @@ export default {
       });
     }
 
-    // 3. 音频流代理接口（消除跨域与混合内容拦截）
+    // 3. 音频流代理接口（注意：已移除 Icy-Metadata，确保纯音频流无爆音）
     if (url.pathname === '/api/stream') {
       const targetUrl = url.searchParams.get('url');
       if (!targetUrl) {
@@ -56,7 +56,7 @@ export default {
         const streamResponse = await fetch(targetUrl, {
           headers: {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-            'Icy-Metadata': '1'
+            // 故意不传 Icy-Metadata，防止元数据混入音频二进制流导致解码爆音
           },
           cf: { cacheTtl: 0 }
         });
@@ -64,6 +64,8 @@ export default {
         const headers = new Headers(streamResponse.headers);
         headers.set('Access-Control-Allow-Origin', '*');
         headers.set('Access-Control-Allow-Methods', 'GET, OPTIONS');
+        // 确保传输编码正确
+        headers.set('Content-Type', streamResponse.headers.get('Content-Type') || 'audio/mpeg');
 
         return new Response(streamResponse.body, {
           status: streamResponse.status,
