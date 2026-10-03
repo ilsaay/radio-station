@@ -2,7 +2,7 @@ export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
 
-    // 提供配置 API 接口，抓取并解析 GitHub 上的 config.ini
+    // 1. 获取并解析 GitHub 上的 config.ini
     if (url.pathname === '/api/config') {
       try {
         const configUrl = 'https://raw.githubusercontent.com/ilsaay/radio-station/main/config.ini';
@@ -13,7 +13,7 @@ export default {
         if (!response.ok) {
           return new Response(JSON.stringify({ error: 'Failed to fetch remote config' }), {
             status: 502,
-            headers: { 'Content-Type': 'application/json; charset=utf-8' }
+            headers: { 'Content-Type': 'application/json; charset=utf-8', 'Access-Control-Allow-Origin': '*' }
           });
         }
 
@@ -23,19 +23,48 @@ export default {
         return new Response(JSON.stringify(parsedConfig), {
           headers: {
             'Content-Type': 'application/json; charset=utf-8',
-            'Cache-Control': 'public, max-age=60', // 缓存1分钟
+            'Cache-Control': 'public, max-age=60',
             'Access-Control-Allow-Origin': '*'
           }
         });
       } catch (err) {
         return new Response(JSON.stringify({ error: err.message }), {
           status: 500,
-          headers: { 'Content-Type': 'application/json; charset=utf-8' }
+          headers: { 'Content-Type': 'application/json; charset=utf-8', 'Access-Control-Allow-Origin': '*' }
         });
       }
     }
 
-    // 其他请求交给静态资源（index.html）处理
+    // 2. 音频流代理接口（完美解决 HTTP 混合内容拦截 & CORS 跨域问题）
+    if (url.pathname === '/api/stream') {
+      const targetUrl = url.searchParams.get('url');
+      if (!targetUrl) {
+        return new Response('Missing target URL', { status: 400 });
+      }
+      try {
+        const streamResponse = await fetch(targetUrl, {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Icy-Metadata': '1'
+          },
+          cf: { cacheTtl: 0 } // 禁用缓存，保证电台实时连接
+        });
+
+        const headers = new Headers(streamResponse.headers);
+        headers.set('Access-Control-Allow-Origin', '*');
+        headers.set('Access-Control-Allow-Methods', 'GET, OPTIONS');
+
+        return new Response(streamResponse.body, {
+          status: streamResponse.status,
+          statusText: streamResponse.statusText,
+          headers: headers
+        });
+      } catch (err) {
+        return new Response('Stream Proxy Error: ' + err.message, { status: 502, headers: { 'Access-Control-Allow-Origin': '*' } });
+      }
+    }
+
+    // 3. 其他请求交由静态资源处理
     return env.ASSETS.fetch(request);
   }
 };
