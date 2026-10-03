@@ -1,6 +1,8 @@
-const CONFIG_URL = "https://raw.githubusercontent.com/ilsaay/radio-station/main/config.ini";
+const CONFIG_URLS = [
+  "https://cdn.jsdelivr.net/gh/ilsaay/radio-station@main/config.ini",
+  "https://raw.githubusercontent.com/ilsaay/radio-station/main/config.ini"
+];
 
-// 内存缓存：30 分钟内不重复请求 GitHub
 const TTL = 30 * 60 * 1000;
 let cache = { time: 0, data: null };
 
@@ -30,8 +32,7 @@ function build(text) {
       url: v.url,
       type: (v.type || 'mp3').toLowerCase(),
       category: v.category || '',
-      description: v.description || '',
-      cover: v.cover || ''
+      description: v.description || ''
     });
   }
   return {
@@ -44,27 +45,34 @@ function build(text) {
   };
 }
 
+async function fetchConfigText() {
+  let lastErr;
+  for (const url of CONFIG_URLS) {
+    try {
+      const r = await fetch(url, {
+        headers: { 'User-Agent': 'radio-station-worker' },
+        cf: { cacheTtl: 1800, cacheEverything: true }
+      });
+      if (r.ok) return await r.text();
+      lastErr = new Error(url + ' -> HTTP ' + r.status);
+    } catch (e) {
+      lastErr = e;
+    }
+  }
+  throw lastErr || new Error('all config urls failed');
+}
+
 async function getConfig() {
   const now = Date.now();
-  // 命中缓存，直接返回
   if (cache.data && now - cache.time < TTL) {
     return { data: cache.data, cached: true };
   }
   try {
-    const r = await fetch(CONFIG_URL, {
-      headers: {
-        'User-Agent': 'radio-station-worker',
-        'Cache-Control': 'no-cache'
-      },
-      // Cloudflare 边缘缓存，30 分钟内同一边缘节点也只回源一次
-      cf: { cacheTtl: 1800, cacheEverything: true }
-    });
-    if (!r.ok) throw Error(`GitHub HTTP ${r.status}`);
-    const data = build(await r.text());
+    const text = await fetchConfigText();
+    const data = build(text);
     cache = { time: now, data };
     return { data, cached: false };
   } catch (e) {
-    // 拉取失败时如果有旧缓存，降级返回旧数据
     if (cache.data) return { data: cache.data, cached: true, stale: true };
     throw e;
   }
