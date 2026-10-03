@@ -1,491 +1,146 @@
-<!doctype html>
-<html lang="zh-CN">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#fff">
-<title>在线广播</title>
-<style>
-/* 亮色 */
-:root{
-  --bg:#f5f5f5;
-  --surface:#fff;
-  --line:#ddd;
-  --text:#222;
-  --muted:#777;
-  --accent:#333;
-  --bar:#fff;
-}
-/* 暗色 */
-html[data-theme="dark"]{
-  --bg:#1a1a1a;
-  --surface:#242424;
-  --line:#3a3a3a;
-  --text:#e8e8e8;
-  --muted:#999;
-  --accent:#e8e8e8;
-  --bar:#202020;
-}
-
-*{box-sizing:border-box}
-html,body{
-  margin:0;
-  background:var(--bg);
-  color:var(--text);
-  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
-  transition:background .2s, color .2s;
-}
-body{padding:0 0 100px}
-
-/* 顶栏 */
-header{
-  padding:24px 28px 16px;
-  display:flex;
-  align-items:flex-start;
-  justify-content:space-between;
-  gap:16px;
-  border-bottom:1px solid var(--line);
-}
-header h1{
-  margin:0;
-  font-size:20px;
-  font-weight:600;
-  color:var(--text);
-}
-header p{
-  margin:6px 0 0;
-  color:var(--muted);
-  font-size:13px;
-}
-
-/* 主题按钮 */
-.theme-btn{
-  width:36px;
-  height:36px;
-  border-radius:6px;
-  border:1px solid var(--line);
-  background:var(--surface);
-  color:var(--text);
-  display:grid;
-  place-items:center;
-  cursor:pointer;
-  flex:0 0 auto;
-  transition:background .15s;
-}
-.theme-btn:hover{background:var(--bg)}
-.theme-btn svg{width:18px;height:18px}
-.theme-btn .icon-sun{display:none}
-.theme-btn .icon-moon{display:block}
-html[data-theme="dark"] .theme-btn .icon-sun{display:block}
-html[data-theme="dark"] .theme-btn .icon-moon{display:none}
-
-/* 内容 */
-main{
-  max-width:960px;
-  margin:0 auto;
-  padding:24px 28px;
-}
-.grid{
-  display:grid;
-  grid-template-columns:repeat(auto-fill,minmax(150px,1fr));
-  gap:14px;
-}
-
-/* 卡片：纯文字方块 */
-.card{
-  aspect-ratio:1/1;
-  border:1px solid var(--line);
-  background:var(--surface);
-  border-radius:8px;
-  padding:16px;
-  cursor:pointer;
-  display:flex;
-  flex-direction:column;
-  justify-content:space-between;
-  transition:border-color .15s, background .15s;
-  overflow:hidden;
-}
-.card:hover{
-  border-color:var(--muted);
-}
-.card.playing{
-  border-color:var(--accent);
-  background:var(--bg);
-}
-.card .name{
-  font-size:15px;
-  font-weight:600;
-  line-height:1.35;
-  color:var(--text);
-  word-break:break-word;
-  display:-webkit-box;
-  -webkit-line-clamp:3;
-  -webkit-box-orient:vertical;
-  overflow:hidden;
-}
-.card .sub{
-  font-size:12px;
-  color:var(--muted);
-  margin-top:10px;
-  white-space:nowrap;
-  overflow:hidden;
-  text-overflow:ellipsis;
-}
-.card .state{
-  font-size:11px;
-  color:var(--muted);
-  margin-top:6px;
-  letter-spacing:.02em;
-}
-.card.playing .state{color:var(--text)}
-
-/* 空状态 */
-.empty{
-  padding:60px 20px;
-  text-align:center;
-  color:var(--muted);
-  border:1px dashed var(--line);
-  border-radius:8px;
-  font-size:14px;
-}
-
-/* 状态栏 */
-.status-bar{
-  max-width:960px;
-  margin:8px auto 0;
-  padding:0 28px;
-  color:var(--muted);
-  font-size:12px;
-}
-
-/* 底部播放条 */
-.bar{
-  position:fixed;
-  left:0;right:0;bottom:0;
-  height:80px;
-  background:var(--bar);
-  border-top:1px solid var(--line);
-  display:flex;
-  align-items:center;
-  gap:16px;
-  padding:0 24px;
-  transition:background .2s, border-color .2s;
-}
-.bar .info{
-  flex:1;
-  min-width:0;
-}
-.bar .title{
-  font-size:14px;
-  font-weight:600;
-  color:var(--text);
-  white-space:nowrap;
-  overflow:hidden;
-  text-overflow:ellipsis;
-}
-.bar .sub{
-  font-size:12px;
-  color:var(--muted);
-  margin-top:4px;
-  white-space:nowrap;
-  overflow:hidden;
-  text-overflow:ellipsis;
-}
-
-/* 播放按钮 */
-.bar .play{
-  width:48px;height:48px;
-  border-radius:8px;
-  border:1px solid var(--line);
-  background:var(--surface);
-  color:var(--text);
-  display:grid;place-items:center;
-  cursor:pointer;flex:0 0 auto;
-  transition:background .15s, border-color .15s;
-}
-.bar .play:hover:not(:disabled){background:var(--bg)}
-.bar .play:disabled{opacity:.4;cursor:default}
-.bar .play svg{width:20px;height:20px;fill:currentColor}
-
-/* 音量 */
-.volume{
-  display:flex;
-  align-items:center;
-  gap:10px;
-  color:var(--muted);
-  flex:0 0 auto;
-}
-.volume svg{width:18px;height:18px;flex:0 0 auto}
-.volume input{
-  -webkit-appearance:none;
-  appearance:none;
-  width:110px;
-  height:4px;
-  border-radius:2px;
-  background:var(--line);
-  outline:none;
-  cursor:pointer;
-}
-.volume input::-webkit-slider-thumb{
-  -webkit-appearance:none;
-  appearance:none;
-  width:14px;height:14px;
-  border-radius:50%;
-  background:var(--text);
-  border:0;
-}
-.volume input::-moz-range-thumb{
-  width:14px;height:14px;
-  border-radius:50%;
-  background:var(--text);
-  border:0;
-}
-.volume .pct{
-  font-size:11px;
-  color:var(--muted);
-  width:30px;
-  text-align:right;
-  font-variant-numeric:tabular-nums;
-}
-
-/* 响应式 */
-@media(max-width:700px){
-  header{padding:18px 16px 12px}
-  header h1{font-size:18px}
-  main{padding:16px}
-  .status-bar{padding:0 16px}
-  .grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
-  .card{padding:12px;border-radius:6px}
-  .card .name{font-size:14px}
-  .bar{height:72px;padding:0 14px;gap:10px}
-  .bar .play{width:44px;height:44px}
-  .volume input{width:70px}
-  .volume .pct{display:none}
-}
-</style>
-</head>
-<body>
-<header>
-  <div>
-    <h1 id="siteName">在线广播</h1>
-    <p id="siteDesc"></p>
-  </div>
-  <button class="theme-btn" id="themeBtn" aria-label="切换主题">
-    <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z"/>
-    </svg>
-    <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <circle cx="12" cy="12" r="4"/>
-      <path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>
-    </svg>
-  </button>
-</header>
-
-<main>
-  <div class="grid" id="grid"></div>
-</main>
-
-<div class="status-bar" id="status">加载中…</div>
-
-<div class="bar">
-  <div class="info">
-    <div class="title" id="nowName">未选择电台</div>
-    <div class="sub" id="nowSub">点击上方方块开始播放</div>
-  </div>
-
-  <button class="play" id="playBtn" disabled aria-label="播放/暂停">
-    <svg id="playIcon" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
-  </button>
-
-  <div class="volume">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M4 10v4h4l5 4V6l-5 4H4Z"/>
-      <path d="M17 9a4 4 0 0 1 0 6"/>
-    </svg>
-    <input id="volume" type="range" min="0" max="1" step="0.01" value="0.8" aria-label="音量">
-    <span class="pct" id="volPct">80%</span>
-  </div>
-</div>
-
-<audio id="audio" preload="none"></audio>
-<script src="https://cdn.jsdelivr.net/npm/hls.js@1.7.3/dist/hls.min.js"></script>
-<script>
-const $ = id => document.getElementById(id);
-const audio = $('audio');
-const state = { stations: [], current: null, hls: null };
-
-const setStatus = t => { $('status').textContent = t; };
-
-function proxied(url) {
-  return location.origin + '/proxy?url=' + encodeURIComponent(url);
-}
-
-function playIcon(playing) {
-  $('playIcon').innerHTML = playing
-    ? '<path d="M7 5h3v14H7zm7 0h3v14h-3z"/>'
-    : '<path d="M8 5v14l11-7z"/>';
-}
-
-function esc(v) {
-  return String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-}
-
-/* ---------- 主题 ---------- */
-const THEME_KEY = 'radio-theme';
-const themeBtn = $('themeBtn');
-const mql = window.matchMedia('(prefers-color-scheme: dark)');
-
-function applyTheme(theme) {
-  document.documentElement.setAttribute('data-theme', theme);
-  const meta = document.querySelector('meta[name="theme-color"]');
-  if (meta) meta.setAttribute('content', theme === 'dark' ? '#1a1a1a' : '#f5f5f5');
-}
-
-function initTheme() {
-  const saved = localStorage.getItem(THEME_KEY);
-  const theme = saved || (mql.matches ? 'dark' : 'light');
-  applyTheme(theme);
-}
-
-themeBtn.onclick = () => {
-  const cur = document.documentElement.getAttribute('data-theme') || 'light';
-  const next = cur === 'dark' ? 'light' : 'dark';
-  localStorage.setItem(THEME_KEY, next);
-  applyTheme(next);
+/* =========================================================
+   接口配置：按你 _worker.js 里的真实路径改这里
+   ========================================================= */
+const API = {
+  list:   "/api/stations",              // 电台列表
+  search: (kw) => `/api/search?kw=${encodeURIComponent(kw)}`,
 };
 
-mql.addEventListener('change', e => {
-  if (!localStorage.getItem(THEME_KEY)) applyTheme(e.matches ? 'dark' : 'light');
-});
+/* ---------- 状态 ---------- */
+const state = { all: [], region: "全部", category: "全部", keyword: "" };
 
-initTheme();
-
-/* ---------- 配置 ---------- */
-async function loadConfig() {
-  setStatus('加载配置…');
-  try {
-    const r = await fetch('/api/stations?t=' + Date.now(), { cache: 'no-store' });
-    if (!r.ok) throw new Error('HTTP ' + r.status);
-    const data = await r.json();
-    state.stations = (data.stations || []).filter(s => s.url);
-    if (data.site) {
-      if (data.site.name) { $('siteName').textContent = data.site.name; document.title = data.site.name; }
-      if (data.site.description) $('siteDesc').textContent = data.site.description;
-    }
-    render();
-    setStatus(state.stations.length ? '就绪' : '配置里没有可用电台');
-  } catch (e) {
-    $('grid').innerHTML = '<div class="empty">读取配置失败：' + e.message + '</div>';
-    setStatus('配置错误');
-  }
+/* ---------- 工具 ---------- */
+function escapeHtml(s){
+  return String(s==null?"":s)
+    .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
+    .replace(/"/g,"&quot;").replace(/'/g,"&#39;");
+}
+async function request(url){
+  const resp = await fetch(url, { headers:{ "Accept":"application/json" } });
+  const text = await resp.text();
+  try { return JSON.parse(text); }
+  catch { throw new Error("返回不是 JSON：" + text.slice(0,120)); }
 }
 
-function render() {
-  if (!state.stations.length) {
-    $('grid').innerHTML = '<div class="empty">没有电台</div>';
-    return;
-  }
-  $('grid').innerHTML = state.stations.map((s, i) => {
-    const playing = state.current === s && !audio.paused;
-    return `<div class="card ${playing ? 'playing' : ''}" data-i="${i}">
-      <div class="name">${esc(s.name)}</div>
-      <div>
-        <div class="sub">${esc(s.category || '')}</div>
-        <div class="state">${playing ? '播放中' : '点击播放'}</div>
+/* ---------- 渲染 ---------- */
+const gridEl   = document.getElementById("grid");
+const titleEl  = document.getElementById("title");
+const countEl  = document.getElementById("count");
+
+function setStatus(t){ gridEl.innerHTML = `<div class="status empty">${escapeHtml(t)}</div>`; }
+
+function renderFilters(){
+  const regions = ["全部", ...new Set(state.all.map(s => s.region).filter(Boolean))];
+  const cats    = ["全部", ...new Set(state.all.map(s => s.category).filter(Boolean))];
+  const row = (label, items, key, current) => `
+    <div class="filter-row">
+      <div class="filter-label">${label}</div>
+      <div class="filter-items">
+        ${items.map(v => `<a href="javascript:;"
+            class="${v===current?'active':''}"
+            onclick="setFilter('${key}','${escapeHtml(v)}')">${escapeHtml(v)}</a>`).join("")}
       </div>
     </div>`;
-  }).join('');
-  for (const el of $('grid').querySelectorAll('.card')) {
-    el.onclick = () => playStation(state.stations[+el.dataset.i]);
-  }
+  document.getElementById("filters").innerHTML =
+    row("地区", regions, "region", state.region) +
+    row("分类", cats, "category", state.category);
 }
 
-function destroyHls() {
-  if (state.hls) { try { state.hls.destroy(); } catch {} state.hls = null; }
+function renderGrid(){
+  const list = state.all.filter(s => {
+    const okR = state.region === "全部"   || s.region === state.region;
+    const okC = state.category === "全部" || s.category === state.category;
+    const okK = !state.keyword ||
+      (s.name||"").includes(state.keyword) ||
+      (s.sub||"").includes(state.keyword);
+    return okR && okC && okK;
+  });
+
+  countEl.textContent = `共 ${list.length} 个电台`;
+  if (!list.length){ setStatus("没有找到符合条件的电台"); return; }
+
+  gridEl.innerHTML = list.map(s => {
+    const cover = s.cover
+      ? `<img src="${escapeHtml(s.cover)}" alt="${escapeHtml(s.name)}" loading="lazy" referrerpolicy="no-referrer">`
+      : `<div class="placeholder">${escapeHtml(s.name||"电台").slice(0,6)}</div>`;
+    return `
+      <div class="card" onclick="playStation('${escapeHtml(s.id||'')}')">
+        <div class="thumb">
+          ${cover}
+          <div class="badge"><i></i>直播中</div>
+        </div>
+        <div class="name" title="${escapeHtml(s.name)}">${escapeHtml(s.name)}</div>
+        <div class="sub">${escapeHtml(s.sub||"")}</div>
+      </div>`;
+  }).join("");
 }
 
-function setNow(s) {
-  $('nowName').textContent = s ? s.name : '未选择电台';
-  $('nowSub').textContent = s ? (s.category || s.description || 'LIVE') : '点击上方方块开始播放';
-  $('playBtn').disabled = !s;
+/* ---------- 交互 ---------- */
+function setFilter(key, value){
+  state[key] = value;
+  renderFilters();
+  renderGrid();
 }
 
-async function tryPlay() {
-  try { await audio.play(); setStatus('播放中'); playIcon(true); render(); }
-  catch { setStatus('点击播放按钮开始'); playIcon(false); }
+function doSearch(){
+  state.keyword = document.getElementById("kw").value.trim();
+  renderGrid();
 }
 
-function isHls(s) {
-  return (s.type || '').toLowerCase() === 'm3u8' || /\.m3u8(\?|$)/i.test(s.url);
-}
-
-function playStation(s) {
+function playStation(id){
+  const s = state.all.find(x => String(x.id) === String(id));
   if (!s) return;
-  state.current = s;
-  destroyHls();
-  audio.pause();
-  audio.removeAttribute('src');
-  audio.load();
-  setNow(s);
-  render();
+  const url = s.streamUrl || s.url || s.src;
+  if (!url){ alert("该电台暂无播放地址"); return; }
+  const player = document.getElementById("player");
+  const audio  = document.getElementById("audio");
+  document.getElementById("pTitle").textContent = s.name || "—";
+  document.getElementById("pSub").textContent   = s.sub  || "";
+  audio.src = url;
+  player.classList.add("show");
+  audio.play().catch(()=>{});
+}
 
-  const src = proxied(s.url);
-  setStatus('连接中…');
+function closePlayer(){
+  const audio = document.getElementById("audio");
+  audio.pause(); audio.src = "";
+  document.getElementById("player").classList.remove("show");
+}
 
-  if (isHls(s)) {
-    if (window.Hls && Hls.isSupported()) {
-      const hls = new Hls({ enableWorker: true, lowLatencyMode: false });
-      state.hls = hls;
-      hls.on(Hls.Events.MANIFEST_PARSED, () => tryPlay());
-      hls.on(Hls.Events.ERROR, (_, d) => {
-        if (!d.fatal) return;
-        if (d.type === Hls.ErrorTypes.NETWORK_ERROR) {
-          setStatus('网络错误：' + d.details);
-          hls.destroy(); state.hls = null;
-        } else if (d.type === Hls.ErrorTypes.MEDIA_ERROR) {
-          setStatus('媒体错误，尝试恢复…');
-          hls.recoverMediaError();
-        } else {
-          setStatus('播放失败：' + d.details);
-          hls.destroy(); state.hls = null;
-        }
-      });
-      hls.loadSource(src);
-      hls.attachMedia(audio);
-    } else if (audio.canPlayType('application/vnd.apple.mpegurl')) {
-      audio.src = src;
-      audio.onloadedmetadata = () => tryPlay();
-    } else {
-      setStatus('浏览器不支持 HLS');
-    }
-  } else {
-    audio.src = src;
-    audio.onloadedmetadata = () => tryPlay();
+/* ---------- 数据归一化：按 _worker.js 的真实返回结构改 ---------- */
+function normalize(data){
+  const arr = Array.isArray(data) ? data : (data?.data || data?.list || data?.stations || []);
+  return arr.map(x => ({
+    id:        x.id || x.radioId || x.radio_id || x.name,
+    name:      x.name || x.title || x.radioName || "未命名",
+    cover:     x.cover || x.image || x.logo || x.pic || "",
+    sub:       x.sub || x.desc || x.description || x.current || "",
+    region:    x.region || x.province || "",
+    category:  x.category || x.type || "",
+    streamUrl: x.streamUrl || x.url || x.src || x.playUrl || "",
+  }));
+}
+
+/* ---------- 启动 ---------- */
+async function boot(){
+  setStatus("加载中…");
+  try {
+    const data = await request(API.list);
+    state.all = normalize(data);
+    renderFilters();
+    renderGrid();
+  } catch(e){
+    setStatus("加载失败：" + e.message);
   }
 }
 
-$('playBtn').onclick = () => {
-  if (!state.current) return;
-  if (audio.paused) tryPlay(); else audio.pause();
-};
+document.getElementById("kw").addEventListener("keydown", e => {
+  if (e.key === "Enter") doSearch();
+});
 
-/* 音量 */
-const vol = $('volume');
-const volPct = $('volPct');
-function syncVolume() {
-  const v = parseFloat(vol.value);
-  audio.volume = v;
-  volPct.textContent = Math.round(v * 100) + '%';
-}
-vol.addEventListener('input', syncVolume);
-syncVolume();
+window.setFilter = setFilter;
+window.doSearch  = doSearch;
+window.playStation = playStation;
+window.closePlayer = closePlayer;
 
-audio.addEventListener('playing', () => { setStatus('播放中'); playIcon(true); render(); });
-audio.addEventListener('pause', () => { playIcon(false); render(); });
-audio.addEventListener('waiting', () => setStatus('缓冲中…'));
-audio.addEventListener('error', () => setStatus('播放出错'));
-
-loadConfig();
-</script>
-</body>
-</html>
+boot();
