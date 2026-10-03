@@ -1,210 +1,167 @@
-/* =========================================================
-   纯前端读取本地 config.ini，自解析，无后端、无 API
-   ========================================================= */
+const CONFIG_URL = "https://raw.githubusercontent.com/ilsaay/radio-station/main/config.ini";
 
-const CONFIG_URL = "./config.ini";
+// 内存缓存：30 分钟内不重复请求 GitHub
+const TTL = 30 * 60 * 1000;
+let cache = { time: 0, data: null };
 
-const state = { site:{}, all:[], category:"全部", keyword:"", rendered:[] };
-let hls = null;
-
-/* ---------- INI 解析器 ---------- */
-function parseINI(text){
-  const result = {};
-  let current = null;
-
-  text.split(/\r?\n/).forEach(rawLine => {
-    const line = rawLine.trim();
-    if (!line || line.startsWith("#") || line.startsWith(";")) return;
-
-    // [section]
-    const secMatch = line.match(/^\[(.+)\]$/);
-    if (secMatch){
-      current = secMatch[1].trim();
-      if (!result[current]) result[current] = {};
-      return;
-    }
-
-    // key=value
-    const eq = line.indexOf("=");
-    if (eq === -1 || !current) return;
-    const key = line.slice(0, eq).trim();
-    const val = line.slice(eq + 1).trim();
-    result[current][key] = val;
-  });
-
-  return result;
+function parseINI(text) {
+  const out = {};
+  let section = null;
+  for (const raw of text.split(/\r?\n/)) {
+    const line = raw.trim();
+    if (!line || line.startsWith('#') || line.startsWith(';')) continue;
+    const sm = line.match(/^\[([^\]]+)\]$/);
+    if (sm) { section = sm[1].trim(); out[section] ??= {}; continue; }
+    const p = line.indexOf('=');
+    if (p < 0 || !section) continue;
+    const k = line.slice(0, p).trim(), v = line.slice(p + 1).trim();
+    if (k) out[section][k] = v;
+  }
+  return out;
 }
 
-/* ---------- 把 INI 对象转成 { site, radios } ---------- */
-function normalize(ini){
-  const site = ini.site || {};
-  const radios = [];
-
-  // 遍历所有 section，跳过 site，其余都当作电台
-  Object.keys(ini).forEach(sec => {
-    if (sec === "site") return;
-    const item = ini[sec];
-    if (!item || !item.url) return;   // 没 url 的跳过
-    radios.push({
-      name:        item.name || sec,
-      url:         item.url,
-      type:        (item.type || "").toLowerCase(),
-      category:    item.category || "未分类",
-      description: item.description || "",
-      cover:       item.cover || "",
+function build(text) {
+  const ini = parseINI(text), site = ini.site || {}, stations = [];
+  for (const [section, v] of Object.entries(ini)) {
+    if (section === 'site' || !v.url) continue;
+    stations.push({
+      id: section,
+      name: v.name || section,
+      url: v.url,
+      type: (v.type || 'mp3').toLowerCase(),
+      category: v.category || '',
+      description: v.description || '',
+      cover: v.cover || ''
     });
-  });
-
+  }
   return {
     site: {
-      name:        site.name || "广播电台",
-      title:       site.title || "随时随地，开始收听。",
-      description: site.description || "",
+      name: site.name || '在线广播',
+      title: site.title || '',
+      description: site.description || ''
     },
-    radios,
+    stations
   };
 }
 
-/* ---------- 工具 ---------- */
-function escapeHtml(s){
-  return String(s==null?"":s)
-    .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
-    .replace(/"/g,"&quot;").replace(/'/g,"&#39;");
-}
-
-/* ---------- 渲染 ---------- */
-const gridEl  = document.getElementById("grid");
-const countEl = document.getElementById("count");
-
-function setStatus(t){ gridEl.innerHTML = `<div class="status empty">${escapeHtml(t)}</div>`; }
-
-function renderSite(){
-  const s = state.site || {};
-  document.getElementById("siteName").textContent = s.name;
-  document.getElementById("footName").textContent = s.name;
-  document.getElementById("siteTitle").textContent = s.title;
-  document.getElementById("siteDesc").textContent = s.description;
-  document.title = s.name;
-}
-
-function renderFilters(){
-  const cats = ["全部", ...new Set(state.all.map(r => r.category).filter(Boolean))];
-  document.getElementById("filters").innerHTML = `
-    <div class="filter-row">
-      <div class="filter-label">分类</div>
-      <div class="filter-items">
-        ${cats.map(c => `<a href="javascript:;"
-            class="${c===state.category?'active':''}"
-            onclick="setCategory('${escapeHtml(c)}')">${escapeHtml(c)}</a>`).join("")}
-      </div>
-    </div>`;
-}
-
-function renderGrid(){
-  const list = state.all.filter(r => {
-    const okC = state.category === "全部" || r.category === state.category;
-    const okK = !state.keyword ||
-      (r.name||"").includes(state.keyword) ||
-      (r.category||"").includes(state.keyword) ||
-      (r.description||"").includes(state.keyword);
-    return okC && okK;
-  });
-
-  state.rendered = list;
-  countEl.textContent = `共 ${list.length} 个电台`;
-
-  if (!list.length){ setStatus("没有找到符合条件的电台"); return; }
-
-  gridEl.innerHTML = list.map((r, i) => {
-    const cover = r.cover
-      ? `<img src="${escapeHtml(r.cover)}" alt="${escapeHtml(r.name)}" loading="lazy" referrerpolicy="no-referrer" onerror="this.style.display='none';this.parentNode.insertAdjacentHTML('beforeend','<div class=\\'placeholder\\'>${escapeHtml((r.name||'台').slice(0,6))}</div>')">`
-      : `<div class="placeholder">${escapeHtml(r.name||"电台").slice(0,6)}</div>`;
-    const typeTag = r.type ? `<span class="type">${escapeHtml(r.type)}</span>` : "";
-    return `
-      <div class="card" onclick="playRadio(${i})">
-        <div class="thumb">
-          ${cover}
-          <div class="badge"><i></i>直播中</div>
-          ${typeTag}
-        </div>
-        <div class="name" title="${escapeHtml(r.name)}">${escapeHtml(r.name)}</div>
-        <div class="sub">${escapeHtml(r.category)}${r.category&&r.description?" · ":""}${escapeHtml(r.description)}</div>
-      </div>`;
-  }).join("");
-}
-
-/* ---------- 交互 ---------- */
-function setCategory(c){ state.category = c; renderFilters(); renderGrid(); }
-function doSearch(){ state.keyword = document.getElementById("kw").value.trim(); renderGrid(); }
-
-function playRadio(i){
-  const r = (state.rendered || state.all)[i];
-  if (!r || !r.url){ alert("该电台暂无播放地址"); return; }
-
-  const audio = document.getElementById("audio");
-  const player = document.getElementById("player");
-
-  document.getElementById("pTitle").textContent = r.name || "—";
-  document.getElementById("pSub").textContent = [r.category, r.type].filter(Boolean).join(" · ");
-  document.getElementById("pCover").innerHTML = r.cover
-    ? `<img src="${escapeHtml(r.cover)}" alt="" onerror="this.parentNode.textContent='♫'">`
-    : "♫";
-
-  if (hls){ hls.destroy(); hls = null; }
-
-  const isM3U8 = r.type === "m3u8" || /\.m3u8(\?|$)/i.test(r.url);
-  const nativeHls = audio.canPlayType("application/vnd.apple.mpegurl");
-
-  if (isM3U8 && !nativeHls){
-    if (window.Hls && window.Hls.isSupported()){
-      hls = new window.Hls();
-      hls.loadSource(r.url);
-      hls.attachMedia(audio);
-    } else {
-      alert("当前浏览器不支持 HLS(m3u8) 播放");
-      return;
-    }
-  } else {
-    audio.src = r.url;
+async function getConfig() {
+  const now = Date.now();
+  // 命中缓存，直接返回
+  if (cache.data && now - cache.time < TTL) {
+    return { data: cache.data, cached: true };
   }
-
-  player.classList.add("show");
-  audio.play().catch(err => console.warn("播放失败：", err));
-}
-
-function closePlayer(){
-  const audio = document.getElementById("audio");
-  audio.pause(); audio.src = "";
-  if (hls){ hls.destroy(); hls = null; }
-  document.getElementById("player").classList.remove("show");
-}
-
-/* ---------- 启动 ---------- */
-async function boot(){
-  setStatus("加载中…");
   try {
-    const resp = await fetch(CONFIG_URL, { cache: "no-cache" });
-    if (!resp.ok) throw new Error("无法读取 config.ini（HTTP " + resp.status + "）");
-    const text = await resp.text();
-    const ini = parseINI(text);
-    const { site, radios } = normalize(ini);
-    state.site = site;
-    state.all  = radios;
-    renderSite();
-    renderFilters();
-    renderGrid();
-  } catch(e){
-    setStatus("加载失败：" + e.message);
+    const r = await fetch(CONFIG_URL, {
+      headers: {
+        'User-Agent': 'radio-station-worker',
+        'Cache-Control': 'no-cache'
+      },
+      // Cloudflare 边缘缓存，30 分钟内同一边缘节点也只回源一次
+      cf: { cacheTtl: 1800, cacheEverything: true }
+    });
+    if (!r.ok) throw Error(`GitHub HTTP ${r.status}`);
+    const data = build(await r.text());
+    cache = { time: now, data };
+    return { data, cached: false };
+  } catch (e) {
+    // 拉取失败时如果有旧缓存，降级返回旧数据
+    if (cache.data) return { data: cache.data, cached: true, stale: true };
+    throw e;
   }
 }
 
-document.getElementById("kw").addEventListener("keydown", e => {
-  if (e.key === "Enter") doSearch();
-});
+async function proxy(request) {
+  const target = new URL(request.url).searchParams.get('url');
+  if (!target) return new Response('missing url', { status: 400 });
 
-window.setCategory = setCategory;
-window.doSearch    = doSearch;
-window.playRadio   = playRadio;
-window.closePlayer = closePlayer;
+  const cors = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'GET, HEAD, OPTIONS',
+    'Access-Control-Allow-Headers': '*',
+    'Access-Control-Expose-Headers': '*'
+  };
+  if (request.method === 'OPTIONS') return new Response(null, { headers: cors });
 
-boot();
+  const headers = new Headers();
+  for (const [k, v] of request.headers) {
+    if (['range', 'user-agent', 'accept'].includes(k.toLowerCase())) headers.set(k, v);
+  }
+  try { headers.set('referer', new URL(target).origin + '/'); } catch {}
+
+  let up;
+  try {
+    up = await fetch(target, { method: 'GET', headers, redirect: 'follow' });
+  } catch (e) {
+    return new Response('upstream error: ' + e.message, { status: 502, headers: cors });
+  }
+
+  const ct = (up.headers.get('content-type') || '').toLowerCase();
+  const isM3u8 = ct.includes('mpegurl') || /\.m3u8(\?|$)/i.test(target);
+
+  if (isM3u8) {
+    const text = await up.text();
+    const base = new URL(target);
+    const baseDir = base.href.slice(0, base.href.lastIndexOf('/') + 1);
+    const origin = new URL(request.url).origin;
+    const lines = text.split('\n').map(line => {
+      const t = line.trim();
+      if (!t) return line;
+      if (t.startsWith('#')) {
+        return line.replace(/URI="([^"]+)"/g, (_, uri) => {
+          const abs = new URL(uri, base.href).href;
+          return `URI="${origin}/proxy?url=${encodeURIComponent(abs)}"`;
+        });
+      }
+      const abs = new URL(t, baseDir).href;
+      return `${origin}/proxy?url=${encodeURIComponent(abs)}`;
+    });
+    return new Response(lines.join('\n'), {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/vnd.apple.mpegurl',
+        'Cache-Control': 'no-cache',
+        ...cors
+      }
+    });
+  }
+
+  const out = new Headers(up.headers);
+  out.delete('content-encoding');
+  out.delete('content-length');
+  out.delete('x-frame-options');
+  out.delete('content-security-policy');
+  for (const [k, v] of Object.entries(cors)) out.set(k, v);
+  return new Response(up.body, { status: up.status, headers: out });
+}
+
+export default {
+  async fetch(request, env) {
+    const u = new URL(request.url);
+
+    if (u.pathname === '/proxy') return proxy(request);
+
+    if (u.pathname === '/api/stations') {
+      try {
+        const { data, cached, stale } = await getConfig();
+        return new Response(JSON.stringify(data), {
+          headers: {
+            'Content-Type': 'application/json; charset=utf-8',
+            'Cache-Control': 'public,max-age=60,stale-while-revalidate=300',
+            'X-Config-Cache': stale ? 'stale' : (cached ? 'hit' : 'miss'),
+            'Access-Control-Allow-Origin': '*'
+          }
+        });
+      } catch (e) {
+        return new Response(JSON.stringify({ error: String(e.message || e) }), {
+          status: 502,
+          headers: {
+            'Content-Type': 'application/json; charset=utf-8',
+            'Access-Control-Allow-Origin': '*'
+          }
+        });
+      }
+    }
+
+    return env.ASSETS.fetch(request);
+  }
+};
