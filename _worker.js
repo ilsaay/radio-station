@@ -1,18 +1,69 @@
 /* =========================================================
-   数据来自 config.ini，经 _worker.js 解析后返回。
-   下面假设 worker 返回结构为：
-   {
-     site: { name, title, description },
-     radios: [ { name, url, type, category, description, cover } ]
-   }
-   若你的 _worker.js 返回结构不同，改 normalize() 即可。
+   纯前端读取本地 config.ini，自解析，无后端、无 API
    ========================================================= */
 
-const API = {
-  data: "/api/config",   // ← 按你 _worker.js 实际路径改这一行
-};
+const CONFIG_URL = "./config.ini";
 
-const state = { site:{}, all:[], category:"全部", keyword:"" };
+const state = { site:{}, all:[], category:"全部", keyword:"", rendered:[] };
+let hls = null;
+
+/* ---------- INI 解析器 ---------- */
+function parseINI(text){
+  const result = {};
+  let current = null;
+
+  text.split(/\r?\n/).forEach(rawLine => {
+    const line = rawLine.trim();
+    if (!line || line.startsWith("#") || line.startsWith(";")) return;
+
+    // [section]
+    const secMatch = line.match(/^\[(.+)\]$/);
+    if (secMatch){
+      current = secMatch[1].trim();
+      if (!result[current]) result[current] = {};
+      return;
+    }
+
+    // key=value
+    const eq = line.indexOf("=");
+    if (eq === -1 || !current) return;
+    const key = line.slice(0, eq).trim();
+    const val = line.slice(eq + 1).trim();
+    result[current][key] = val;
+  });
+
+  return result;
+}
+
+/* ---------- 把 INI 对象转成 { site, radios } ---------- */
+function normalize(ini){
+  const site = ini.site || {};
+  const radios = [];
+
+  // 遍历所有 section，跳过 site，其余都当作电台
+  Object.keys(ini).forEach(sec => {
+    if (sec === "site") return;
+    const item = ini[sec];
+    if (!item || !item.url) return;   // 没 url 的跳过
+    radios.push({
+      name:        item.name || sec,
+      url:         item.url,
+      type:        (item.type || "").toLowerCase(),
+      category:    item.category || "未分类",
+      description: item.description || "",
+      cover:       item.cover || "",
+    });
+  });
+
+  return {
+    site: {
+      name:        site.name || "广播电台",
+      title:       site.title || "随时随地，开始收听。",
+      description: site.description || "",
+    },
+    radios,
+  };
+}
 
 /* ---------- 工具 ---------- */
 function escapeHtml(s){
@@ -20,26 +71,20 @@ function escapeHtml(s){
     .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
     .replace(/"/g,"&quot;").replace(/'/g,"&#39;");
 }
-async function request(url){
-  const resp = await fetch(url,{headers:{Accept:"application/json"}});
-  const text = await resp.text();
-  try { return JSON.parse(text); }
-  catch { throw new Error("返回不是 JSON：" + text.slice(0,120)); }
-}
 
 /* ---------- 渲染 ---------- */
 const gridEl  = document.getElementById("grid");
-const titleEl = document.getElementById("listTitle");
 const countEl = document.getElementById("count");
 
 function setStatus(t){ gridEl.innerHTML = `<div class="status empty">${escapeHtml(t)}</div>`; }
 
 function renderSite(){
   const s = state.site || {};
-  if (s.name){ document.getElementById("siteName").textContent = s.name; document.getElementById("footName").textContent = s.name; }
-  if (s.title){ document.getElementById("siteTitle").textContent = s.title; }
-  if (s.description){ document.getElementById("siteDesc").textContent = s.description; }
-  if (s.name) document.title = s.name + " · 随时随地，开始收听";
+  document.getElementById("siteName").textContent = s.name;
+  document.getElementById("footName").textContent = s.name;
+  document.getElementById("siteTitle").textContent = s.title;
+  document.getElementById("siteDesc").textContent = s.description;
+  document.title = s.name;
 }
 
 function renderFilters(){
@@ -65,12 +110,14 @@ function renderGrid(){
     return okC && okK;
   });
 
+  state.rendered = list;
   countEl.textContent = `共 ${list.length} 个电台`;
+
   if (!list.length){ setStatus("没有找到符合条件的电台"); return; }
 
   gridEl.innerHTML = list.map((r, i) => {
     const cover = r.cover
-      ? `<img src="${escapeHtml(r.cover)}" alt="${escapeHtml(r.name)}" loading="lazy" referrerpolicy="no-referrer">`
+      ? `<img src="${escapeHtml(r.cover)}" alt="${escapeHtml(r.name)}" loading="lazy" referrerpolicy="no-referrer" onerror="this.style.display='none';this.parentNode.insertAdjacentHTML('beforeend','<div class=\\'placeholder\\'>${escapeHtml((r.name||'台').slice(0,6))}</div>')">`
       : `<div class="placeholder">${escapeHtml(r.name||"电台").slice(0,6)}</div>`;
     const typeTag = r.type ? `<span class="type">${escapeHtml(r.type)}</span>` : "";
     return `
@@ -81,86 +128,66 @@ function renderGrid(){
           ${typeTag}
         </div>
         <div class="name" title="${escapeHtml(r.name)}">${escapeHtml(r.name)}</div>
-        <div class="sub">${escapeHtml(r.category||"")}${r.category&&r.description?" · ":""}${escapeHtml(r.description||"")}</div>
+        <div class="sub">${escapeHtml(r.category)}${r.category&&r.description?" · ":""}${escapeHtml(r.description)}</div>
       </div>`;
   }).join("");
-
-  // 保存当前渲染的列表，供播放时按索引取
-  state.rendered = list;
 }
 
 /* ---------- 交互 ---------- */
-function setCategory(c){
-  state.category = c;
-  renderFilters();
-  renderGrid();
-}
-function doSearch(){
-  state.keyword = document.getElementById("kw").value.trim();
-  renderGrid();
-}
+function setCategory(c){ state.category = c; renderFilters(); renderGrid(); }
+function doSearch(){ state.keyword = document.getElementById("kw").value.trim(); renderGrid(); }
 
 function playRadio(i){
-  const list = state.rendered || state.all;
-  const r = list[i];
+  const r = (state.rendered || state.all)[i];
   if (!r || !r.url){ alert("该电台暂无播放地址"); return; }
 
+  const audio = document.getElementById("audio");
   const player = document.getElementById("player");
-  const audio  = document.getElementById("audio");
-  const cover  = document.getElementById("pCover");
 
   document.getElementById("pTitle").textContent = r.name || "—";
-  document.getElementById("pSub").textContent =
-    [r.category, r.type].filter(Boolean).join(" · ");
-
-  cover.innerHTML = r.cover
-    ? `<img src="${escapeHtml(r.cover)}" alt="">`
+  document.getElementById("pSub").textContent = [r.category, r.type].filter(Boolean).join(" · ");
+  document.getElementById("pCover").innerHTML = r.cover
+    ? `<img src="${escapeHtml(r.cover)}" alt="" onerror="this.parentNode.textContent='♫'">`
     : "♫";
 
-  audio.src = r.url;
+  if (hls){ hls.destroy(); hls = null; }
+
+  const isM3U8 = r.type === "m3u8" || /\.m3u8(\?|$)/i.test(r.url);
+  const nativeHls = audio.canPlayType("application/vnd.apple.mpegurl");
+
+  if (isM3U8 && !nativeHls){
+    if (window.Hls && window.Hls.isSupported()){
+      hls = new window.Hls();
+      hls.loadSource(r.url);
+      hls.attachMedia(audio);
+    } else {
+      alert("当前浏览器不支持 HLS(m3u8) 播放");
+      return;
+    }
+  } else {
+    audio.src = r.url;
+  }
+
   player.classList.add("show");
-  audio.play().catch(err => {
-    console.warn("播放失败：", err);
-    // m3u8 在部分浏览器需 hls.js 支持
-  });
+  audio.play().catch(err => console.warn("播放失败：", err));
 }
 
 function closePlayer(){
   const audio = document.getElementById("audio");
   audio.pause(); audio.src = "";
+  if (hls){ hls.destroy(); hls = null; }
   document.getElementById("player").classList.remove("show");
-}
-
-/* ---------- 数据归一化：对齐 config.ini ---------- */
-function normalize(data){
-  // 兼容几种可能：{site, radios} / {site, radio:[...]} / 纯数组
-  const site = data?.site || {};
-  let radios = data?.radios || data?.radio || data?.list || [];
-  if (!Array.isArray(radios)) radios = [radios];
-
-  return {
-    site: {
-      name: site.name || "广播电台",
-      title: site.title || "随时随地，开始收听。",
-      description: site.description || "",
-    },
-    radios: radios.filter(Boolean).map(x => ({
-      name:        x.name || "未命名",
-      url:         x.url || "",
-      type:        (x.type || "").toLowerCase(),
-      category:    x.category || "未分类",
-      description: x.description || "",
-      cover:       x.cover || "",
-    })).filter(x => x.url),
-  };
 }
 
 /* ---------- 启动 ---------- */
 async function boot(){
   setStatus("加载中…");
   try {
-    const raw = await request(API.data);
-    const { site, radios } = normalize(raw);
+    const resp = await fetch(CONFIG_URL, { cache: "no-cache" });
+    if (!resp.ok) throw new Error("无法读取 config.ini（HTTP " + resp.status + "）");
+    const text = await resp.text();
+    const ini = parseINI(text);
+    const { site, radios } = normalize(ini);
     state.site = site;
     state.all  = radios;
     renderSite();
