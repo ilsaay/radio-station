@@ -35,7 +35,18 @@ export default {
       }
     }
 
-    // 2. 音频流代理接口（完美支持全平台、跨域、HTTP/HTTPS 混合加载）
+    // 2. 高精度 NTP 时间同步接口（用于客户端校准时钟偏移）
+    if (url.pathname === '/api/time') {
+      return new Response(JSON.stringify({ serverTime: Date.now() }), {
+        headers: {
+          'Content-Type': 'application/json; charset=utf-8',
+          'Cache-Control': 'no-store',
+          'Access-Control-Allow-Origin': '*'
+        }
+      });
+    }
+
+    // 3. 音频流代理接口（消除跨域与混合内容拦截）
     if (url.pathname === '/api/stream') {
       const targetUrl = url.searchParams.get('url');
       if (!targetUrl) {
