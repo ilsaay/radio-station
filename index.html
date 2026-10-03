@@ -162,7 +162,7 @@
             margin-top: 4px;
         }
 
-        /* 10 款专业皮肤 */
+        /* 10 款专业皮肤样式 */
         body.theme-1 { background: #121212; color: #e0e0e0; }
         body.theme-1 .player-container { background: #1e1e1e; border: 1px solid #333; box-shadow: 0 20px 40px rgba(0,0,0,0.6); }
         body.theme-1 .display-screen { background: #141414; border: 1px solid #2a2a2a; color: #ff3b30; font-family: monospace; }
@@ -303,16 +303,15 @@
         </div>
     </div>
 
-    <audio id="audio-element"></audio>
+    <audio id="audio-element" preload="auto"></audio>
 
     <script>
-        // 样式切换
         const themeSelector = document.getElementById('theme-selector');
         themeSelector.addEventListener('change', (e) => {
             document.body.className = e.target.value;
         });
 
-        // NTP 时钟同步机制
+        // NTP 时钟同步
         let clockOffset = 0;
         async function syncNtpTime() {
             try {
@@ -321,25 +320,22 @@
                 const data = await res.json();
                 const end = Date.now();
                 const rtt = end - start;
-                // 计算本地与服务端时间差 (Offset = ServerTime - (LocalEnd - RTT/2))
                 clockOffset = data.serverTime - (end - rtt / 2);
             } catch (e) {
-                console.warn('NTP sync failed, fallback to local time');
+                console.warn('NTP sync failed');
             }
         }
         syncNtpTime();
-        setInterval(syncNtpTime, 60000); // 每分钟校准一次
+        setInterval(syncNtpTime, 60000);
 
         const clockElement = document.getElementById('ntp-clock');
         function updateClock() {
             const syncedNow = new Date(Date.now() + clockOffset);
-            const timeStr = syncedNow.toUTCString().slice(17, 25) + " UTC";
-            clockElement.textContent = timeStr;
+            clockElement.textContent = syncedNow.toUTCString().slice(17, 25) + " UTC";
         }
         setInterval(updateClock, 1000);
         updateClock();
 
-        // 核心抗爆音音频引擎
         const audioElement = document.getElementById('audio-element');
         const playBtn = document.getElementById('play-btn');
         const stopBtn = document.getElementById('stop-btn');
@@ -390,7 +386,6 @@
             }
         }
 
-        // 初始化 Web Audio 节点图（彻底消除爆音）
         function initAudioContext() {
             if (isInitialized) return;
             try {
@@ -399,14 +394,12 @@
                 analyser = audioCtx.createAnalyser();
                 analyser.fftSize = 64;
                 
-                // 创建 GainNode 用于平滑音量控制，避免数字爆音
                 gainNode = audioCtx.createGain();
                 gainNode.gain.value = parseFloat(volSlider.value);
 
                 audioElement.crossOrigin = "anonymous";
                 sourceNode = audioCtx.createMediaElementSource(audioElement);
                 
-                // 连线图：Source -> GainNode -> Analyser -> Destination
                 sourceNode.connect(gainNode);
                 gainNode.connect(analyser);
                 analyser.connect(audioCtx.destination);
@@ -428,7 +421,7 @@
             const currentName = stationSelect.options[stationSelect.selectedIndex].text;
 
             displayTitle.textContent = currentName;
-            displayMeta.textContent = "Establishing live stream...";
+            displayMeta.textContent = "Connecting to pure audio stream...";
 
             initAudioContext();
             if (audioCtx && audioCtx.state === 'suspended') {
@@ -441,14 +434,13 @@
                 displayMeta.textContent = "Broadcasting Active";
                 statusText.textContent = "Live";
             }).catch(err => {
-                displayMeta.textContent = "Playback failed (Check stream link)";
+                displayMeta.textContent = "Playback failed";
                 statusText.textContent = "Error";
             });
         });
 
         stopBtn.addEventListener('click', () => {
             if (gainNode && audioCtx) {
-                // 平滑渐隐音量到 0，防止切断时出现爆音
                 gainNode.gain.setTargetAtTime(0, audioCtx.currentTime, 0.05);
                 setTimeout(() => {
                     audioElement.pause();
@@ -464,16 +456,14 @@
             statusText.textContent = "Standby";
         });
 
-        // 华丽平滑音量控制（彻底消除调整音量时的电流/爆音声）
         volSlider.addEventListener('input', (e) => {
             const val = parseFloat(e.target.value);
-            audioElement.volume = val; // 双重保障
+            audioElement.volume = val;
             if (gainNode && audioCtx) {
                 gainNode.gain.setTargetAtTime(val, audioCtx.currentTime, 0.03);
             }
         });
 
-        // 频谱渲染
         function drawVisualizer() {
             requestAnimationFrame(drawVisualizer);
             const width = canvas.width = canvas.offsetWidth;
