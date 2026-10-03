@@ -7,7 +7,7 @@ export default {
       try {
         const configUrl = 'https://raw.githubusercontent.com/ilsaay/radio-station/main/config.ini';
         const response = await fetch(configUrl, {
-          headers: { 'User-Agent': 'Cloudflare-Worker-Radio' }
+          headers: { 'User-Agent': 'Cloudflare-Worker-Radio-Pro' }
         });
         
         if (!response.ok) {
@@ -35,7 +35,7 @@ export default {
       }
     }
 
-    // 2. 音频流代理接口（完美解决 HTTP 混合内容拦截 & CORS 跨域问题）
+    // 2. 音频流代理接口（完美支持全平台、跨域、HTTP/HTTPS 混合加载）
     if (url.pathname === '/api/stream') {
       const targetUrl = url.searchParams.get('url');
       if (!targetUrl) {
@@ -47,7 +47,7 @@ export default {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
             'Icy-Metadata': '1'
           },
-          cf: { cacheTtl: 0 } // 禁用缓存，保证电台实时连接
+          cf: { cacheTtl: 0 }
         });
 
         const headers = new Headers(streamResponse.headers);
@@ -64,12 +64,10 @@ export default {
       }
     }
 
-    // 3. 其他请求交由静态资源处理
     return env.ASSETS.fetch(request);
   }
 };
 
-// 简易 INI 配置文件解析器
 function parseINI(text) {
   const lines = text.split(/\r?\n/);
   const config = {};
