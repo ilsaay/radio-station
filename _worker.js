@@ -46,7 +46,7 @@ export default {
       });
     }
 
-    // 3. 音频流代理接口（注意：已移除 Icy-Metadata，确保纯音频流无爆音）
+    // 3. 音频流代理接口（核心优化：禁止边缘转换与缓冲，保障纯净流式传输）
     if (url.pathname === '/api/stream') {
       const targetUrl = url.searchParams.get('url');
       if (!targetUrl) {
@@ -56,7 +56,6 @@ export default {
         const streamResponse = await fetch(targetUrl, {
           headers: {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-            // 故意不传 Icy-Metadata，防止元数据混入音频二进制流导致解码爆音
           },
           cf: { cacheTtl: 0 }
         });
@@ -64,8 +63,10 @@ export default {
         const headers = new Headers(streamResponse.headers);
         headers.set('Access-Control-Allow-Origin', '*');
         headers.set('Access-Control-Allow-Methods', 'GET, OPTIONS');
-        // 确保传输编码正确
         headers.set('Content-Type', streamResponse.headers.get('Content-Type') || 'audio/mpeg');
+        // 关键防护头：禁止 Cloudflare 压缩/转换，禁用代理缓冲
+        headers.set('Cache-Control', 'no-transform, no-store');
+        headers.set('X-Accel-Buffering', 'no');
 
         return new Response(streamResponse.body, {
           status: streamResponse.status,
