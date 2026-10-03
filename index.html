@@ -390,7 +390,9 @@
             if (isInitialized) return;
             try {
                 const AudioContext = window.AudioContext || window.webkitAudioContext;
-                audioCtx = new AudioContext();
+                // 核心修复：指定 latencyHint: 'playback' 扩大缓冲区，彻底消除网络抖动带来的爆音
+                audioCtx = new AudioContext({ latencyHint: 'playback' });
+                
                 analyser = audioCtx.createAnalyser();
                 analyser.fftSize = 64;
                 
@@ -421,7 +423,7 @@
             const currentName = stationSelect.options[stationSelect.selectedIndex].text;
 
             displayTitle.textContent = currentName;
-            displayMeta.textContent = "Connecting to pure audio stream...";
+            displayMeta.textContent = "Connecting to stable stream...";
 
             initAudioContext();
             if (audioCtx && audioCtx.state === 'suspended') {
