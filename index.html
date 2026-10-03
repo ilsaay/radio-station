@@ -6,7 +6,7 @@
     <title>Retro Web Radio Station</title>
     <style>
         body {
-            background-color: #008080; /* 经典桌面藏青绿 */
+            background-color: #008080;
             font-family: "MS Sans Serif", Tahoma, Arial, sans-serif;
             margin: 0;
             padding: 20px;
@@ -55,11 +55,12 @@
             font-family: "Courier New", Courier, monospace;
             padding: 8px;
             border: inset 2px #808080;
-            height: 70px;
+            height: 75px;
             overflow: hidden;
-            font-size: 13px;
+            font-size: 12px;
             margin-bottom: 10px;
             line-height: 1.4;
+            word-break: break-all;
         }
         .controls-group {
             background: #c0c0c0;
@@ -124,7 +125,7 @@
 <body>
     <div class="window">
         <div class="title-bar">
-            <span>📻 Retro Radio Station v1.0</span>
+            <span>📻 Retro Radio Station v1.1</span>
             <div class="title-bar-controls">
                 <button>_</button>
                 <button>□</button>
@@ -134,7 +135,7 @@
         <div class="window-body">
             <div class="screen" id="lcd-screen">
                 > Initializing system...<br>
-                > Fetching config from GitHub...
+                > Connecting to backend...
             </div>
 
             <div class="controls-group">
@@ -160,7 +161,7 @@
 
             <div class="status-bar">
                 <span id="connection-status">Status: Ready</span>
-                <span>Universal Client</span>
+                <span>Proxy Enabled</span>
             </div>
         </div>
     </div>
@@ -180,7 +181,6 @@
         let audioCtx, analyser, sourceNode;
         let isInitialized = false;
 
-        // 异步加载配置
         async function loadConfig() {
             try {
                 const res = await fetch('/api/config');
@@ -192,7 +192,6 @@
 
                 for (const section in configData) {
                     const data = configData[section];
-                    // 兼容常规 INI 配置里的 url / stream / name 字段
                     const streamUrl = data.url || data.stream;
                     const stationName = data.name || section;
 
@@ -206,7 +205,6 @@
                 }
 
                 if (stationCount === 0) {
-                    // 降级兼容：如果没匹配到特定字段，遍历所有键值对
                     for (const section in configData) {
                         const opt = document.createElement('option');
                         opt.value = configData[section].url || Object.values(configData[section])[0] || '';
@@ -224,7 +222,6 @@
             }
         }
 
-        // 初始化 Web Audio API 频谱分析
         function initAudioContext() {
             if (isInitialized) return;
             try {
@@ -239,29 +236,37 @@
                 analyser.connect(audioCtx.destination);
                 isInitialized = true;
             } catch (e) {
-                console.warn('Web Audio API restricted, fallback to standard play:', e);
+                console.warn('Web Audio API restricted:', e);
             }
         }
 
         playBtn.addEventListener('click', () => {
-            const streamUrl = stationSelect.value;
-            if (!streamUrl) {
+            const rawUrl = stationSelect.value;
+            if (!rawUrl) {
                 lcdScreen.innerHTML = `> Error: No valid stream URL!`;
                 return;
             }
+
+            // 通过 Worker 代理转发流，彻底解决 HTTP/CORS 阻断问题
+            const proxyUrl = `/api/stream?url=${encodeURIComponent(rawUrl)}`;
+            
+            lcdScreen.innerHTML = `> Loading Stream...<br>> ${stationSelect.options[stationSelect.selectedIndex].text}`;
+            
             initAudioContext();
             if (audioCtx && audioCtx.state === 'suspended') {
                 audioCtx.resume();
             }
 
-            audioElement.src = streamUrl;
+            audioElement.src = proxyUrl;
+            audioElement.load();
             audioElement.play().then(() => {
                 const currentName = stationSelect.options[stationSelect.selectedIndex].text;
                 lcdScreen.innerHTML = `> Now Playing:<br>> ${currentName}`;
                 statusLabel.textContent = 'Status: Playing';
             }).catch(err => {
-                lcdScreen.innerHTML = `> Playback failed!<br>> ${err.message}`;
+                lcdScreen.innerHTML = `> Playback failed!<br>> Check if stream is alive.`;
                 statusLabel.textContent = 'Status: Failed';
+                console.error("Audio error:", err);
             });
         });
 
@@ -278,7 +283,6 @@
 
         audioElement.volume = volSlider.value;
 
-        // 绘制复古绿色频谱动画
         function drawVisualizer() {
             requestAnimationFrame(drawVisualizer);
             const width = canvas.width;
