@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Aether Broadcast System | Professional Radio</title>
     <style>
-        /* 全局重置与基础布局 */
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -19,7 +18,6 @@
             padding: 20px;
         }
 
-        /* 皮肤选择切换栏样式 */
         .theme-switcher-bar {
             position: fixed;
             top: 15px;
@@ -47,7 +45,6 @@
             outline: none;
         }
 
-        /* 主播放器外壳通用容器 */
         .player-container {
             width: 100%;
             max-width: 440px;
@@ -82,20 +79,27 @@
         }
         .dot.active { background: #10b981; box-shadow: 0 0 8px #10b981; }
 
-        /* 显示屏/状态窗口 */
         .display-screen {
             padding: 16px;
             border-radius: 10px;
             margin-bottom: 20px;
-            min-height: 85px;
+            min-height: 95px;
             display: flex;
             flex-direction: column;
-            justify-content: center;
+            justify-content: space-between;
+        }
+        .screen-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 11px;
+            opacity: 0.6;
+            font-family: monospace;
         }
         .station-name {
             font-size: 18px;
             font-weight: 700;
-            margin-bottom: 4px;
+            margin: 4px 0;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
@@ -105,7 +109,6 @@
             opacity: 0.7;
         }
 
-        /* 控制区域 */
         .controls-section {
             display: flex;
             flex-direction: column;
@@ -159,9 +162,7 @@
             margin-top: 4px;
         }
 
-        /* ==================== 10 款专业设计皮肤样式 ==================== */
-
-        /* 1. Industrial Minimal (Teenage Engineering 工业极简灰红) */
+        /* 10 款专业皮肤 */
         body.theme-1 { background: #121212; color: #e0e0e0; }
         body.theme-1 .player-container { background: #1e1e1e; border: 1px solid #333; box-shadow: 0 20px 40px rgba(0,0,0,0.6); }
         body.theme-1 .display-screen { background: #141414; border: 1px solid #2a2a2a; color: #ff3b30; font-family: monospace; }
@@ -170,7 +171,6 @@
         body.theme-1 .btn-stop { background: #2c2c2c; color: #aaa; border: 1px solid #444; }
         body.theme-1 canvas { background: #0a0a0a; }
 
-        /* 2. Dieter Rams Braun (经典包豪斯银灰黑) */
         body.theme-2 { background: #e5e5e3; color: #222; }
         body.theme-2 .player-container { background: #f4f4f2; border: 1px solid #dcdcdc; box-shadow: 0 10px 30px rgba(0,0,0,0.08); }
         body.theme-2 .display-screen { background: #e8e8e6; border: inset 1px #d0d0d0; color: #111; }
@@ -179,7 +179,6 @@
         body.theme-2 .btn-stop { background: #e0e0e0; color: #333; border: 1px solid #ccc; }
         body.theme-2 canvas { background: #dfdfde; }
 
-        /* 3. McIntosh Audiophile (发烧级深黑夜空与宝石蓝表头) */
         body.theme-3 { background: #050505; color: #ccc; }
         body.theme-3 .player-container { background: #0f0f12; border: 1px solid #222; box-shadow: 0 25px 50px rgba(0,0,0,0.8); }
         body.theme-3 .display-screen { background: #001e3d; border: 1px solid #004080; color: #4da6ff; box-shadow: inset 0 0 15px rgba(0,100,255,0.3); }
@@ -188,7 +187,6 @@
         body.theme-3 .btn-stop { background: #1a1a24; color: #889; border: 1px solid #334; }
         body.theme-3 canvas { background: #000b1a; }
 
-        /* 4. Cupertino Glass (Apple 灵动毛玻璃冰透白) */
         body.theme-4 { background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); color: #1d1d1f; }
         body.theme-4 .player-container { background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.8); box-shadow: 0 20px 40px rgba(0,0,0,0.1); }
         body.theme-4 .display-screen { background: rgba(255, 255, 255, 0.5); border: 1px solid rgba(255,255,255,0.6); color: #1d1d1f; }
@@ -197,7 +195,6 @@
         body.theme-4 .btn-stop { background: rgba(0,0,0,0.05); color: #1d1d1f; border: 1px solid rgba(0,0,0,0.1); }
         body.theme-4 canvas { background: rgba(0,0,0,0.04); }
 
-        /* 5. Scandinavian Editorial (北欧米白与静谧墨绿) */
         body.theme-5 { background: #f2f0eb; color: #2c3531; }
         body.theme-5 .player-container { background: #faf9f6; border: 1px solid #e3dfd3; box-shadow: 0 12px 30px rgba(44,53,49,0.06); }
         body.theme-5 .display-screen { background: #eae6db; border: none; color: #2c3531; font-family: Georgia, serif; }
@@ -206,7 +203,6 @@
         body.theme-5 .btn-stop { background: #e5e0d3; color: #3a5a40; }
         body.theme-5 canvas { background: #eae6db; }
 
-        /* 6. Cyberpunk Neon (霓虹赛博朋克深紫电光) */
         body.theme-6 { background: #0a0612; color: #00ffff; }
         body.theme-6 .player-container { background: #130b22; border: 1px solid #ff007f; box-shadow: 0 0 30px rgba(255,0,127,0.2); }
         body.theme-6 .display-screen { background: #06030c; border: 1px solid #00ffff; color: #00ffff; text-shadow: 0 0 8px rgba(0,255,255,0.6); font-family: monospace; }
@@ -215,7 +211,6 @@
         body.theme-6 .btn-stop { background: #1a0f2e; color: #00ffff; border: 1px solid #00ffff; }
         body.theme-6 canvas { background: #05020a; }
 
-        /* 7. Swiss International (瑞士国际主义红黑纯粹风) */
         body.theme-7 { background: #ffffff; color: #000000; }
         body.theme-7 .player-container { background: #f7f7f7; border: 2px solid #000; box-shadow: 8px 8px 0px #000; border-radius: 0px; }
         body.theme-7 .display-screen { background: #000; color: #fff; border-radius: 0px; font-family: Helvetica, sans-serif; }
@@ -224,7 +219,6 @@
         body.theme-7 .btn-stop { background: #fff; color: #000; border: 2px solid #000; border-radius: 0px; }
         body.theme-7 canvas { background: #111; border-radius: 0px; }
 
-        /* 8. Bloomberg Terminal (华尔街金融终端橙琥珀复古流) */
         body.theme-8 { background: #000000; color: #ff9900; }
         body.theme-8 .player-container { background: #0c0c0c; border: 1px solid #ff9900; box-shadow: 0 15px 35px rgba(255,153,0,0.15); }
         body.theme-8 .display-screen { background: #000; border: 1px dashed #ff9900; color: #ffb732; font-family: "Courier New", monospace; }
@@ -233,7 +227,6 @@
         body.theme-8 .btn-stop { background: #141414; color: #ff9900; border: 1px solid #ff9900; font-family: monospace; }
         body.theme-8 canvas { background: #050505; }
 
-        /* 9. Lo-Fi Café (温暖咖啡厅木质拿铁色调) */
         body.theme-9 { background: #2b2621; color: #e6dfd5; }
         body.theme-9 .player-container { background: #38312a; border: 1px solid #4a4037; box-shadow: 0 20px 40px rgba(0,0,0,0.4); }
         body.theme-9 .display-screen { background: #27221d; border: 1px solid #453b32; color: #d4a373; }
@@ -242,7 +235,6 @@
         body.theme-9 .btn-stop { background: #27221d; color: #dda15e; border: 1px solid #5c4e42; }
         body.theme-9 canvas { background: #1c1815; }
 
-        /* 10. Neo-Brutalist (新粗野主义高级潮流风) */
         body.theme-10 { background: #ccff00; color: #000; }
         body.theme-10 .player-container { background: #ffffff; border: 4px solid #000; box-shadow: 6px 6px 0px #000; border-radius: 12px; }
         body.theme-10 .display-screen { background: #000; color: #ccff00; border: 3px solid #000; border-radius: 6px; font-family: monospace; }
@@ -254,24 +246,22 @@
 </head>
 <body class="theme-1">
 
-    <!-- 顶部 10 风格实时切换栏 -->
     <div class="theme-switcher-bar">
-        <span>🎨 Select UI Style:</span>
+        <span>🎨 Style:</span>
         <select id="theme-selector">
-            <option value="theme-1">1. Industrial Minimal (工业极简)</option>
-            <option value="theme-2">2. Dieter Rams Braun (包豪斯经典)</option>
-            <option value="theme-3">3. McIntosh Audiophile (发烧蓝宝石)</option>
-            <option value="theme-4">4. Cupertino Glass (苹果毛玻璃)</option>
-            <option value="theme-5">5. Scandinavian Editorial (北欧墨绿)</option>
-            <option value="theme-6">6. Cyberpunk Neon (赛博朋克霓虹)</option>
-            <option value="theme-7">7. Swiss International (瑞士红黑)</option>
-            <option value="theme-8">8. Bloomberg Terminal (华尔街终端)</option>
-            <option value="theme-9">9. Lo-Fi Café (温暖咖啡厅)</option>
-            <option value="theme-10">10. Neo-Brutalist (新粗野潮牌)</option>
+            <option value="theme-1">1. Industrial Minimal</option>
+            <option value="theme-2">2. Dieter Rams Braun</option>
+            <option value="theme-3">3. McIntosh Audiophile</option>
+            <option value="theme-4">4. Cupertino Glass</option>
+            <option value="theme-5">5. Scandinavian Editorial</option>
+            <option value="theme-6">6. Cyberpunk Neon</option>
+            <option value="theme-7">7. Swiss International</option>
+            <option value="theme-8">8. Bloomberg Terminal</option>
+            <option value="theme-9">9. Lo-Fi Café</option>
+            <option value="theme-10">10. Neo-Brutalist</option>
         </select>
     </div>
 
-    <!-- 主播放器容器 -->
     <div class="player-container">
         <div class="header-info">
             <span class="brand-title">Aether Broadcast</span>
@@ -282,14 +272,20 @@
         </div>
 
         <div class="display-screen">
-            <div class="station-name" id="display-title">SYSTEM READY</div>
-            <div class="station-meta" id="display-meta">Select a station to initialize stream</div>
+            <div class="screen-top">
+                <span>NTP SYNCED TIME</span>
+                <span id="ntp-clock">00:00:00 UTC</span>
+            </div>
+            <div>
+                <div class="station-name" id="display-title">SYSTEM READY</div>
+                <div class="station-meta" id="display-meta">Synchronizing channels...</div>
+            </div>
         </div>
 
         <div class="controls-section">
             <div class="select-wrapper">
                 <select id="station-select" class="station-select">
-                    <option value="">-- Synchronizing Station List --</option>
+                    <option value="">-- Loading Stations --</option>
                 </select>
             </div>
 
@@ -310,13 +306,40 @@
     <audio id="audio-element"></audio>
 
     <script>
-        // 皮肤切换逻辑
+        // 样式切换
         const themeSelector = document.getElementById('theme-selector');
         themeSelector.addEventListener('change', (e) => {
             document.body.className = e.target.value;
         });
 
-        // 核心播放与代理逻辑
+        // NTP 时钟同步机制
+        let clockOffset = 0;
+        async function syncNtpTime() {
+            try {
+                const start = Date.now();
+                const res = await fetch('/api/time');
+                const data = await res.json();
+                const end = Date.now();
+                const rtt = end - start;
+                // 计算本地与服务端时间差 (Offset = ServerTime - (LocalEnd - RTT/2))
+                clockOffset = data.serverTime - (end - rtt / 2);
+            } catch (e) {
+                console.warn('NTP sync failed, fallback to local time');
+            }
+        }
+        syncNtpTime();
+        setInterval(syncNtpTime, 60000); // 每分钟校准一次
+
+        const clockElement = document.getElementById('ntp-clock');
+        function updateClock() {
+            const syncedNow = new Date(Date.now() + clockOffset);
+            const timeStr = syncedNow.toUTCString().slice(17, 25) + " UTC";
+            clockElement.textContent = timeStr;
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+
+        // 核心抗爆音音频引擎
         const audioElement = document.getElementById('audio-element');
         const playBtn = document.getElementById('play-btn');
         const stopBtn = document.getElementById('stop-btn');
@@ -330,10 +353,9 @@
         const canvas = document.getElementById('visualizer');
         const canvasCtx = canvas.getContext('2d');
 
-        let audioCtx, analyser, sourceNode;
+        let audioCtx, analyser, sourceNode, gainNode;
         let isInitialized = false;
 
-        // 异步加载远程配置
         async function loadConfig() {
             try {
                 const res = await fetch('/api/config');
@@ -358,7 +380,7 @@
                 }
 
                 displayTitle.textContent = "ONLINE READY";
-                displayMeta.textContent = `${count} channels synchronized from remote`;
+                displayMeta.textContent = `${count} channels synchronized`;
                 statusDot.classList.add('active');
                 statusText.textContent = "Connected";
             } catch (err) {
@@ -368,7 +390,7 @@
             }
         }
 
-        // 初始化 Web Audio 频谱
+        // 初始化 Web Audio 节点图（彻底消除爆音）
         function initAudioContext() {
             if (isInitialized) return;
             try {
@@ -377,17 +399,24 @@
                 analyser = audioCtx.createAnalyser();
                 analyser.fftSize = 64;
                 
+                // 创建 GainNode 用于平滑音量控制，避免数字爆音
+                gainNode = audioCtx.createGain();
+                gainNode.gain.value = parseFloat(volSlider.value);
+
                 audioElement.crossOrigin = "anonymous";
                 sourceNode = audioCtx.createMediaElementSource(audioElement);
-                sourceNode.connect(analyser);
+                
+                // 连线图：Source -> GainNode -> Analyser -> Destination
+                sourceNode.connect(gainNode);
+                gainNode.connect(analyser);
                 analyser.connect(audioCtx.destination);
+                
                 isInitialized = true;
             } catch (e) {
-                console.warn('Web Audio API restricted:', e);
+                console.warn('Web Audio initialization warning:', e);
             }
         }
 
-        // 播放按钮事件
         playBtn.addEventListener('click', () => {
             const rawUrl = stationSelect.value;
             if (!rawUrl) {
@@ -399,7 +428,7 @@
             const currentName = stationSelect.options[stationSelect.selectedIndex].text;
 
             displayTitle.textContent = currentName;
-            displayMeta.textContent = "Connecting to stream proxy...";
+            displayMeta.textContent = "Establishing live stream...";
 
             initAudioContext();
             if (audioCtx && audioCtx.state === 'suspended') {
@@ -409,8 +438,8 @@
             audioElement.src = proxyUrl;
             audioElement.load();
             audioElement.play().then(() => {
-                displayMeta.textContent = "Live Broadcast Active";
-                statusText.textContent = "Broadcasting";
+                displayMeta.textContent = "Broadcasting Active";
+                statusText.textContent = "Live";
             }).catch(err => {
                 displayMeta.textContent = "Playback failed (Check stream link)";
                 statusText.textContent = "Error";
@@ -418,32 +447,42 @@
         });
 
         stopBtn.addEventListener('click', () => {
-            audioElement.pause();
-            audioElement.src = '';
+            if (gainNode && audioCtx) {
+                // 平滑渐隐音量到 0，防止切断时出现爆音
+                gainNode.gain.setTargetAtTime(0, audioCtx.currentTime, 0.05);
+                setTimeout(() => {
+                    audioElement.pause();
+                    audioElement.src = '';
+                    gainNode.gain.setTargetAtTime(parseFloat(volSlider.value), audioCtx.currentTime, 0.05);
+                }, 100);
+            } else {
+                audioElement.pause();
+                audioElement.src = '';
+            }
             displayTitle.textContent = "HALTED";
             displayMeta.textContent = "Stream disconnected";
             statusText.textContent = "Standby";
         });
 
+        // 华丽平滑音量控制（彻底消除调整音量时的电流/爆音声）
         volSlider.addEventListener('input', (e) => {
-            audioElement.volume = e.target.value;
+            const val = parseFloat(e.target.value);
+            audioElement.volume = val; // 双重保障
+            if (gainNode && audioCtx) {
+                gainNode.gain.setTargetAtTime(val, audioCtx.currentTime, 0.03);
+            }
         });
-        audioElement.volume = volSlider.value;
 
-        // 动态频谱渲染
+        // 频谱渲染
         function drawVisualizer() {
             requestAnimationFrame(drawVisualizer);
             const width = canvas.width = canvas.offsetWidth;
             const height = canvas.height = canvas.offsetHeight;
             
-            // 读取当前主题色作为频谱基调
-            const computedStyle = getComputedStyle(document.body);
-            const isDark = document.body.classList.contains('theme-7') || document.body.classList.contains('theme-4');
-            
             canvasCtx.clearRect(0, 0, width, height);
 
             if (!analyser || audioElement.paused) {
-                canvasCtx.fillStyle = isDark ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.2)';
+                canvasCtx.fillStyle = 'rgba(255,255,255,0.15)';
                 canvasCtx.fillRect(0, height / 2 - 1, width, 2);
                 return;
             }
@@ -458,7 +497,6 @@
             for (let i = 0; i < bufferLength; i++) {
                 let barHeight = (dataArray[i] / 255) * height;
                 
-                // 根据不同皮肤定制频谱颜色
                 if (document.body.classList.contains('theme-3')) canvasCtx.fillStyle = '#4da6ff';
                 else if (document.body.classList.contains('theme-6')) canvasCtx.fillStyle = '#00ffff';
                 else if (document.body.classList.contains('theme-8')) canvasCtx.fillStyle = '#ff9900';
