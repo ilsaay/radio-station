@@ -6,220 +6,46 @@
 <meta name="theme-color" content="#fff">
 <title>在线广播</title>
 <style>
-:root{
-  --bg:#ffffff;
-  --text:#111;
-  --muted:#8a8a8a;
-  --line:#ececec;
-  --hover:#f7f7f7;
-}
-html[data-theme="dark"]{
-  --bg:#101010;
-  --text:#ededed;
-  --muted:#888;
-  --line:#242424;
-  --hover:#1a1a1a;
-}
+:root{--bg:#fff;--text:#111;--muted:#8a8a8a;--line:#ececec;--hover:#f7f7f7}
+html[data-theme="dark"]{--bg:#101010;--text:#ededed;--muted:#888;--line:#242424;--hover:#1a1a1a}
 *{box-sizing:border-box}
-html,body{
-  margin:0;
-  background:var(--bg);
-  color:var(--text);
-  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
-  font-size:15px;
-  line-height:1.6;
-  -webkit-font-smoothing:antialiased;
-  transition:background .25s, color .25s;
-}
+html,body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;font-size:15px;line-height:1.6;-webkit-font-smoothing:antialiased;transition:background .25s,color .25s}
 body{padding:0 0 92px}
-
-header{
-  max-width:640px;
-  margin:0 auto;
-  padding:56px 28px 28px;
-  display:flex;
-  align-items:flex-start;
-  justify-content:space-between;
-  gap:16px;
-}
-header h1{
-  margin:0;
-  font-size:20px;
-  font-weight:600;
-  letter-spacing:-.01em;
-}
-header p{
-  margin:8px 0 0;
-  color:var(--muted);
-  font-size:13px;
-}
-.theme-btn{
-  width:34px;height:34px;
-  border:0;
-  background:transparent;
-  color:var(--muted);
-  border-radius:50%;
-  display:grid;place-items:center;
-  cursor:pointer;flex:0 0 auto;
-  transition:background .15s, color .15s;
-}
+header{max-width:640px;margin:0 auto;padding:56px 28px 28px;display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
+header h1{margin:0;font-size:20px;font-weight:600;letter-spacing:-.01em}
+header p{margin:8px 0 0;color:var(--muted);font-size:13px}
+.theme-btn{width:34px;height:34px;border:0;background:transparent;color:var(--muted);border-radius:50%;display:grid;place-items:center;cursor:pointer;flex:0 0 auto;transition:background .15s,color .15s}
 .theme-btn:hover{background:var(--hover);color:var(--text)}
 .theme-btn svg{width:17px;height:17px}
 .theme-btn .icon-sun{display:none}
 .theme-btn .icon-moon{display:block}
 html[data-theme="dark"] .theme-btn .icon-sun{display:block}
 html[data-theme="dark"] .theme-btn .icon-moon{display:none}
-
-main{
-  max-width:640px;
-  margin:0 auto;
-  padding:0 28px;
-}
-
-.row{
-  display:flex;
-  align-items:baseline;
-  gap:16px;
-  padding:18px 0;
-  border-bottom:1px solid var(--line);
-  cursor:pointer;
-  transition:opacity .15s;
-}
+main{max-width:640px;margin:0 auto;padding:0 28px}
+.row{display:flex;align-items:baseline;gap:16px;padding:18px 0;border-bottom:1px solid var(--line);cursor:pointer;transition:opacity .15s}
 .row:first-child{border-top:1px solid var(--line)}
 .row:hover{opacity:.65}
 .row.playing .name{font-weight:700}
-.row.playing .name::after{
-  content:"播放中";
-  margin-left:10px;
-  font-size:11px;
-  font-weight:400;
-  color:var(--muted);
-  letter-spacing:.05em;
-}
-
-.row .name{
-  flex:1;
-  min-width:0;
-  font-size:16px;
-  font-weight:500;
-  color:var(--text);
-  white-space:nowrap;
-  overflow:hidden;
-  text-overflow:ellipsis;
-}
-.row .meta{
-  font-size:12px;
-  color:var(--muted);
-  flex:0 0 auto;
-  white-space:nowrap;
-}
-
-.empty{
-  padding:80px 0;
-  text-align:center;
-  color:var(--muted);
-  font-size:14px;
-}
-
-.status{
-  max-width:640px;
-  margin:20px auto 0;
-  padding:0 28px;
-  color:var(--muted);
-  font-size:12px;
-  min-height:16px;
-}
-
-.bar{
-  position:fixed;
-  left:0;right:0;bottom:0;
-  background:var(--bg);
-  border-top:1px solid var(--line);
-  transition:background .25s, border-color .25s;
-}
-.bar-inner{
-  max-width:640px;
-  margin:0 auto;
-  padding:14px 28px;
-  display:flex;
-  align-items:center;
-  gap:18px;
-}
-.bar .info{
-  flex:1;
-  min-width:0;
-}
-.bar .title{
-  font-size:14px;
-  font-weight:600;
-  white-space:nowrap;
-  overflow:hidden;
-  text-overflow:ellipsis;
-}
-.bar .sub{
-  font-size:12px;
-  color:var(--muted);
-  margin-top:2px;
-  white-space:nowrap;
-  overflow:hidden;
-  text-overflow:ellipsis;
-}
-
-.vol{
-  display:flex;
-  align-items:center;
-  gap:8px;
-  color:var(--muted);
-  flex:0 0 auto;
-}
+.row.playing .name::after{content:"播放中";margin-left:10px;font-size:11px;font-weight:400;color:var(--muted);letter-spacing:.05em}
+.row .name{flex:1;min-width:0;font-size:16px;font-weight:500;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row .meta{font-size:12px;color:var(--muted);flex:0 0 auto;white-space:nowrap}
+.empty{padding:80px 0;text-align:center;color:var(--muted);font-size:14px}
+.status{max-width:640px;margin:20px auto 0;padding:0 28px;color:var(--muted);font-size:12px;min-height:16px}
+.bar{position:fixed;left:0;right:0;bottom:0;background:var(--bg);border-top:1px solid var(--line);transition:background .25s,border-color .25s}
+.bar-inner{max-width:640px;margin:0 auto;padding:14px 28px;display:flex;align-items:center;gap:18px}
+.bar .info{flex:1;min-width:0}
+.bar .title{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bar .sub{font-size:12px;color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.vol{display:flex;align-items:center;gap:8px;color:var(--muted);flex:0 0 auto}
 .vol svg{width:15px;height:15px;flex:0 0 auto}
-.vol input{
-  -webkit-appearance:none;
-  appearance:none;
-  width:80px;
-  height:2px;
-  border-radius:1px;
-  background:var(--line);
-  outline:none;
-  cursor:pointer;
-}
-.vol input::-webkit-slider-thumb{
-  -webkit-appearance:none;
-  appearance:none;
-  width:11px;height:11px;
-  border-radius:50%;
-  background:var(--text);
-  border:0;
-}
-.vol input::-moz-range-thumb{
-  width:11px;height:11px;
-  border-radius:50%;
-  background:var(--text);
-  border:0;
-}
-
-.play{
-  width:40px;height:40px;
-  border-radius:50%;
-  border:0;
-  background:var(--text);
-  color:var(--bg);
-  display:grid;place-items:center;
-  cursor:pointer;flex:0 0 auto;
-  transition:transform .12s, opacity .15s;
-}
+.vol input{-webkit-appearance:none;appearance:none;width:80px;height:2px;border-radius:1px;background:var(--line);outline:none;cursor:pointer}
+.vol input::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:11px;height:11px;border-radius:50%;background:var(--text);border:0}
+.vol input::-moz-range-thumb{width:11px;height:11px;border-radius:50%;background:var(--text);border:0}
+.play{width:40px;height:40px;border-radius:50%;border:0;background:var(--text);color:var(--bg);display:grid;place-items:center;cursor:pointer;flex:0 0 auto;transition:transform .12s,opacity .15s}
 .play:active{transform:scale(.93)}
 .play:disabled{opacity:.25;cursor:default}
 .play svg{width:16px;height:16px;fill:currentColor}
-
-@media(max-width:700px){
-  header{padding:40px 18px 20px}
-  main{padding:0 18px}
-  .status{padding:0 18px}
-  .bar-inner{padding:12px 18px;gap:12px}
-  .vol{display:none}
-  .row{padding:16px 0}
-}
+@media(max-width:700px){header{padding:40px 18px 20px}main{padding:0 18px}.status{padding:0 18px}.bar-inner{padding:12px 18px;gap:12px}.vol{display:none}.row{padding:16px 0}}
 </style>
 </head>
 <body>
@@ -229,13 +55,8 @@ main{
     <p id="siteDesc"></p>
   </div>
   <button class="theme-btn" id="themeBtn" aria-label="切换主题">
-    <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z"/>
-    </svg>
-    <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-      <circle cx="12" cy="12" r="4"/>
-      <path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>
-    </svg>
+    <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z"/></svg>
+    <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
   </button>
 </header>
 
@@ -251,15 +72,10 @@ main{
       <div class="title" id="nowName">未选择电台</div>
       <div class="sub" id="nowSub">点击上方电台开始播放</div>
     </div>
-
     <div class="vol">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M4 10v4h4l5 4V6l-5 4H4Z"/>
-        <path d="M17 9a4 4 0 0 1 0 6"/>
-      </svg>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10v4h4l5 4V6l-5 4H4Z"/><path d="M17 9a4 4 0 0 1 0 6"/></svg>
       <input id="volume" type="range" min="0" max="1" step="0.01" value="0.8" aria-label="音量">
     </div>
-
     <button class="play" id="playBtn" disabled aria-label="播放/暂停">
       <svg id="playIcon" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
     </button>
@@ -286,33 +102,29 @@ function esc(v) {
   return String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
 
-/* ---------- 主题 ---------- */
+/* 主题 */
 const THEME_KEY = 'radio-theme';
 const mql = window.matchMedia('(prefers-color-scheme: dark)');
-
 function applyTheme(theme) {
   document.documentElement.setAttribute('data-theme', theme);
   const meta = document.querySelector('meta[name="theme-color"]');
   if (meta) meta.setAttribute('content', theme === 'dark' ? '#101010' : '#ffffff');
 }
-
 (function initTheme() {
   const saved = localStorage.getItem(THEME_KEY);
   applyTheme(saved || (mql.matches ? 'dark' : 'light'));
 })();
-
 $('themeBtn').onclick = () => {
   const cur = document.documentElement.getAttribute('data-theme') || 'light';
   const next = cur === 'dark' ? 'light' : 'dark';
   localStorage.setItem(THEME_KEY, next);
   applyTheme(next);
 };
-
 mql.addEventListener('change', e => {
   if (!localStorage.getItem(THEME_KEY)) applyTheme(e.matches ? 'dark' : 'light');
 });
 
-/* ---------- INI 解析（纯前端） ---------- */
+/* INI 解析 */
 function parseINI(text) {
   const out = {};
   let section = null;
@@ -352,13 +164,11 @@ function build(text) {
   };
 }
 
-/* ---------- 读取配置 ---------- */
-// 纯文本地址：jsDelivr 优先，raw 兜底
+/* 读取配置：纯文本地址 */
 const CONFIG_URLS = [
   'https://cdn.jsdelivr.net/gh/ilsaay/radio-station@main/config.ini',
   'https://raw.githubusercontent.com/ilsaay/radio-station/main/config.ini'
 ];
-// 浏览器缓存：10 分钟
 const CACHE_KEY = 'radio-config-cache';
 const CACHE_TTL = 10 * 60 * 1000;
 
@@ -369,7 +179,7 @@ async function fetchConfigText() {
     if (cached && now - cached.time < CACHE_TTL) return cached.text;
   } catch {}
 
-  let lastErr;
+  const errors = [];
   for (const url of CONFIG_URLS) {
     try {
       const r = await fetch(url, { cache: 'no-store' });
@@ -378,17 +188,16 @@ async function fetchConfigText() {
         try { localStorage.setItem(CACHE_KEY, JSON.stringify({ time: now, text })); } catch {}
         return text;
       }
-      lastErr = new Error(url + ' -> HTTP ' + r.status);
+      errors.push(url + ' -> HTTP ' + r.status);
     } catch (e) {
-      lastErr = e;
+      errors.push(url + ' -> ' + e.message);
     }
   }
-  // 全部失败，退回过期缓存
   try {
     const cached = JSON.parse(localStorage.getItem(CACHE_KEY) || 'null');
     if (cached) return cached.text;
   } catch {}
-  throw lastErr || new Error('all config urls failed');
+  throw new Error(errors.join(' | '));
 }
 
 async function loadConfig() {
@@ -404,7 +213,7 @@ async function loadConfig() {
     render();
     setStatus('');
   } catch (e) {
-    $('list').innerHTML = '<div class="empty">读取配置失败：' + e.message + '</div>';
+    $('list').innerHTML = '<div class="empty">读取配置失败：' + esc(e.message) + '</div>';
     setStatus('');
   }
 }
