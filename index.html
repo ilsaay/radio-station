@@ -12,7 +12,6 @@
   --muted:#8a8a8a;
   --line:#ececec;
   --hover:#f7f7f7;
-  --playing:#111;
 }
 html[data-theme="dark"]{
   --bg:#101010;
@@ -20,7 +19,6 @@ html[data-theme="dark"]{
   --muted:#888;
   --line:#242424;
   --hover:#1a1a1a;
-  --playing:#ededed;
 }
 *{box-sizing:border-box}
 html,body{
@@ -35,7 +33,6 @@ html,body{
 }
 body{padding:0 0 92px}
 
-/* 顶部标题 */
 header{
   max-width:640px;
   margin:0 auto;
@@ -73,15 +70,12 @@ header p{
 html[data-theme="dark"] .theme-btn .icon-sun{display:block}
 html[data-theme="dark"] .theme-btn .icon-moon{display:none}
 
-/* 电台列表 */
 main{
   max-width:640px;
   margin:0 auto;
   padding:0 28px;
 }
-.list{}
 
-/* 每一行 */
 .row{
   display:flex;
   align-items:baseline;
@@ -127,7 +121,6 @@ main{
   font-size:14px;
 }
 
-/* 底部状态提示 */
 .status{
   max-width:640px;
   margin:20px auto 0;
@@ -137,7 +130,6 @@ main{
   min-height:16px;
 }
 
-/* 底部播放条 */
 .bar{
   position:fixed;
   left:0;right:0;bottom:0;
@@ -173,7 +165,6 @@ main{
   text-overflow:ellipsis;
 }
 
-/* 音量 */
 .vol{
   display:flex;
   align-items:center;
@@ -207,7 +198,6 @@ main{
   border:0;
 }
 
-/* 播放按钮 */
 .play{
   width:40px;height:40px;
   border-radius:50%;
@@ -250,7 +240,7 @@ main{
 </header>
 
 <main>
-  <div class="list" id="list"></div>
+  <div id="list"></div>
 </main>
 
 <div class="status" id="status"></div>
@@ -296,7 +286,7 @@ function esc(v) {
   return String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
 
-/* 主题 */
+/* ---------- 主题 ---------- */
 const THEME_KEY = 'radio-theme';
 const mql = window.matchMedia('(prefers-color-scheme: dark)');
 
@@ -322,14 +312,91 @@ mql.addEventListener('change', e => {
   if (!localStorage.getItem(THEME_KEY)) applyTheme(e.matches ? 'dark' : 'light');
 });
 
-/* 配置 */
+/* ---------- INI 解析（纯前端） ---------- */
+function parseINI(text) {
+  const out = {};
+  let section = null;
+  for (const raw of text.split(/\r?\n/)) {
+    const line = raw.trim();
+    if (!line || line.startsWith('#') || line.startsWith(';')) continue;
+    const sm = line.match(/^\[([^\]]+)\]$/);
+    if (sm) { section = sm[1].trim(); out[section] ??= {}; continue; }
+    const p = line.indexOf('=');
+    if (p < 0 || !section) continue;
+    const k = line.slice(0, p).trim(), v = line.slice(p + 1).trim();
+    if (k) out[section][k] = v;
+  }
+  return out;
+}
+
+function build(text) {
+  const ini = parseINI(text), site = ini.site || {}, stations = [];
+  for (const [section, v] of Object.entries(ini)) {
+    if (section === 'site' || !v.url) continue;
+    stations.push({
+      id: section,
+      name: v.name || section,
+      url: v.url,
+      type: (v.type || 'mp3').toLowerCase(),
+      category: v.category || '',
+      description: v.description || ''
+    });
+  }
+  return {
+    site: {
+      name: site.name || '在线广播',
+      title: site.title || '',
+      description: site.description || ''
+    },
+    stations
+  };
+}
+
+/* ---------- 读取配置 ---------- */
+// 纯文本地址：jsDelivr 优先，raw 兜底
+const CONFIG_URLS = [
+  'https://cdn.jsdelivr.net/gh/ilsaay/radio-station@main/config.ini',
+  'https://raw.githubusercontent.com/ilsaay/radio-station/main/config.ini'
+];
+// 浏览器缓存：10 分钟
+const CACHE_KEY = 'radio-config-cache';
+const CACHE_TTL = 10 * 60 * 1000;
+
+async function fetchConfigText() {
+  const now = Date.now();
+  try {
+    const cached = JSON.parse(localStorage.getItem(CACHE_KEY) || 'null');
+    if (cached && now - cached.time < CACHE_TTL) return cached.text;
+  } catch {}
+
+  let lastErr;
+  for (const url of CONFIG_URLS) {
+    try {
+      const r = await fetch(url, { cache: 'no-store' });
+      if (r.ok) {
+        const text = await r.text();
+        try { localStorage.setItem(CACHE_KEY, JSON.stringify({ time: now, text })); } catch {}
+        return text;
+      }
+      lastErr = new Error(url + ' -> HTTP ' + r.status);
+    } catch (e) {
+      lastErr = e;
+    }
+  }
+  // 全部失败，退回过期缓存
+  try {
+    const cached = JSON.parse(localStorage.getItem(CACHE_KEY) || 'null');
+    if (cached) return cached.text;
+  } catch {}
+  throw lastErr || new Error('all config urls failed');
+}
+
 async function loadConfig() {
   setStatus('加载配置…');
   try {
-    const r = await fetch('/api/stations?t=' + Date.now(), { cache: 'no-store' });
-    if (!r.ok) throw new Error('HTTP ' + r.status);
-    const data = await r.json();
-    state.stations = (data.stations || []).filter(s => s.url);
+    const text = await fetchConfigText();
+    const data = build(text);
+    state.stations = data.stations;
     if (data.site) {
       if (data.site.name) { $('siteName').textContent = data.site.name; document.title = data.site.name; }
       if (data.site.description) $('siteDesc').textContent = data.site.description;
